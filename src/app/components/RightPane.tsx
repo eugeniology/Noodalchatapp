@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
 import { Badge } from "./ui/badge";
@@ -14,8 +14,6 @@ interface RightPaneProps {
   quickAsks: QuickAsk[];
   onQuickAskClick: (ask: QuickAsk) => void;
   onHistoryClick?: (entry: ChatHistoryEntry) => void;
-  onLoopClick?: (loop: Loop) => void;
-  onRefreshStatus?: () => void;
 }
 
 export function RightPane({
@@ -25,8 +23,6 @@ export function RightPane({
   quickAsks,
   onQuickAskClick,
   onHistoryClick,
-  onLoopClick,
-  onRefreshStatus,
 }: RightPaneProps) {
   const [sectionsOpen, setSectionsOpen] = useState({
     history: true,
@@ -54,23 +50,10 @@ export function RightPane({
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-4">
           {/* Status Section (unlabeled, always visible) */}
-          <div className="flex items-start justify-between gap-2">
-            <div className="text-sm text-muted-foreground space-y-1 flex-1">
-              {status.split("\n").map((line, i) => (
-                <div key={i}>{line}</div>
-              ))}
-            </div>
-            {onRefreshStatus && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 shrink-0 -mt-0.5"
-                onClick={onRefreshStatus}
-                aria-label="Metabolize / refresh status"
-              >
-                <RefreshCw className="h-3.5 w-3.5" />
-              </Button>
-            )}
+          <div className="text-sm text-muted-foreground space-y-1">
+            {status.split("\n").map((line, i) => (
+              <div key={i}>{line}</div>
+            ))}
           </div>
 
           <Separator />
@@ -135,21 +118,20 @@ export function RightPane({
                 )}
               </Button>
             </CollapsibleTrigger>
-            <CollapsibleContent className="mt-2 space-y-1">
+            <CollapsibleContent className="mt-2 space-y-2">
               {loops.map((loop) => (
-                <button
+                <div
                   key={loop.id}
-                  onClick={() => onLoopClick?.(loop)}
-                  className="w-full flex items-center justify-between text-sm hover:bg-muted/40 rounded px-2 py-1 -mx-2 text-left"
+                  className="flex items-center justify-between text-sm"
                 >
                   <span className="truncate">{loop.name}</span>
                   <Badge
                     variant={loop.status === "CLOSED" ? "secondary" : "outline"}
-                    className="text-xs ml-2 shrink-0"
+                    className="text-xs"
                   >
                     {loop.status}
                   </Badge>
-                </button>
+                </div>
               ))}
             </CollapsibleContent>
           </Collapsible>
