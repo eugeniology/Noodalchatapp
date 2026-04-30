@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Paperclip, Send, ChevronDown, ChevronRight } from "lucide-react";
+import { X, Paperclip, Send, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { Button } from "./ui/button";
 import { Textarea } from "./ui/textarea";
 import { ScrollArea } from "./ui/scroll-area";
@@ -8,23 +8,23 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./ui/collap
 import type { ChatTab, Message } from "../types";
 
 interface CenterPaneProps {
+  corpusName: string | null;
   tabs: ChatTab[];
   activeTabId: string | null;
   onTabClose: (tabId: string) => void;
   onTabSelect: (tabId: string) => void;
   onSendMessage: (tabId: string, content: string) => void;
-  onContinueSession?: (tabId: string) => void;
-  hasPreviousSession?: boolean;
+  onNewChat: () => void;
 }
 
 export function CenterPane({
+  corpusName,
   tabs,
   activeTabId,
   onTabClose,
   onTabSelect,
   onSendMessage,
-  onContinueSession,
-  hasPreviousSession = false,
+  onNewChat,
 }: CenterPaneProps) {
   const [input, setInput] = useState("");
 
@@ -44,7 +44,7 @@ export function CenterPane({
     }
   };
 
-  if (tabs.length === 0) {
+  if (!corpusName) {
     return (
       <div className="flex items-center justify-center h-full text-muted-foreground">
         Select a corpus from the left rail to start
@@ -54,32 +54,47 @@ export function CenterPane({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="border-b border-border bg-background flex items-center px-2 gap-1 min-h-10">
-        {tabs.map((tab) => (
-          <div
-            key={tab.id}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-t cursor-pointer border-b-2 ${
-              tab.id === activeTabId
-                ? "border-primary bg-muted/50"
-                : "border-transparent hover:bg-muted/30"
-            }`}
-            onClick={() => onTabSelect(tab.id)}
-          >
-            <span className="text-sm">{tab.corpusName}</span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onTabClose(tab.id);
-              }}
-              className="hover:bg-muted rounded p-0.5"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-        ))}
+      <div className="border-b border-border bg-background h-10 flex items-center justify-center px-4">
+        <span className="text-sm font-medium">{corpusName}</span>
       </div>
 
-      {activeTab && (
+      <div className="border-b border-border bg-background flex items-center px-2 gap-1 min-h-10">
+        <div className="flex items-center gap-1 flex-1 overflow-x-auto">
+          {tabs.map((tab, index) => (
+            <div
+              key={tab.id}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-t cursor-pointer border-b-2 ${
+                tab.id === activeTabId
+                  ? "border-primary bg-muted/50"
+                  : "border-transparent hover:bg-muted/30"
+              }`}
+              onClick={() => onTabSelect(tab.id)}
+            >
+              <span className="text-sm">Chat {index + 1}</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTabClose(tab.id);
+                }}
+                className="hover:bg-muted rounded p-0.5"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 shrink-0"
+          onClick={onNewChat}
+          aria-label="New chat"
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {activeTab ? (
         <>
           <ScrollArea className="flex-1">
             <div className="p-4 space-y-4 max-w-4xl mx-auto w-full">
@@ -91,18 +106,6 @@ export function CenterPane({
 
           <div className="border-t border-border p-4 bg-background">
             <div className="max-w-4xl mx-auto w-full space-y-3">
-              {hasPreviousSession && onContinueSession && (
-                <div className="flex justify-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => onContinueSession(activeTab.id)}
-                    className="rounded-full"
-                  >
-                    Continue Session
-                  </Button>
-                </div>
-              )}
               <div className="flex gap-2 items-end">
                 <div className="flex-1 relative">
                   <Textarea
@@ -128,6 +131,10 @@ export function CenterPane({
             </div>
           </div>
         </>
+      ) : (
+        <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+          No open chats — click <Plus className="inline h-3.5 w-3.5 mx-1" /> to start one with {corpusName}
+        </div>
       )}
     </div>
   );
