@@ -50,7 +50,7 @@ export function RightPane({
   };
 
   return (
-    <div className="flex flex-col h-full bg-background border-l border-border w-80">
+    <div className="flex flex-col h-full bg-background border-l border-border">
       <ScrollArea className="flex-1">
         <div className="p-4 space-y-4">
           {/* Status Section (unlabeled, always visible) */}
