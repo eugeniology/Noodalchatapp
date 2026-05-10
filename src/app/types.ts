@@ -2,10 +2,18 @@ export type CorpusStatus = "green" | "yellow";
 
 export type LoopStatus = "OBSERVING" | "CLOSED" | "ACTIVE";
 
+export type CorpusRole = "navigator" | "curator";
+
 export interface Corpus {
   id: string;
   name: string;
   status: CorpusStatus;
+  // Slice four: role distinguishes navigator-character (engagement, exploratory,
+  // cross-scope orientation) from curator-character (administrator, producer,
+  // gang-internal). Per e3922a4d Phase A, gang curators wear both hats; Phase B
+  // deploys a separate Navigator corpus per gang. UI seed marks both roles so
+  // forward-compat is in place without backend Phase B.
+  role?: CorpusRole;
 }
 
 export interface Gang {
@@ -13,6 +21,9 @@ export interface Gang {
   name: string;
   status?: CorpusStatus;
   corpora: Corpus[];
+  // Slice four: pointer to this gang's designated curator corpus. Walking into a
+  // gang and walking into its curator are the same gesture (c96e3b5d).
+  curatorCorpusId?: string;
 }
 
 export interface Community {

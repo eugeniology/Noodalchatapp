@@ -9,10 +9,12 @@ import { Avatar, AvatarFallback } from "./ui/avatar";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Checkbox } from "./ui/checkbox";
 import { Label } from "./ui/label";
+import { Badge } from "./ui/badge";
 import { welcomeMessageFor } from "../App";
 import type {
   ChatTab,
   Community,
+  Corpus,
   Message,
   QABlockResolution,
   ToolUse,
@@ -75,6 +77,15 @@ export function CenterPane({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? null;
+  // Slice four: resolve the live Corpus + Gang objects so the corpus header
+  // can render role badge + metadata. activeTab carries gangId/corpusId; the
+  // full objects live on community.
+  const activeCorpus: Corpus | null =
+    (activeTab &&
+      community.gangs
+        .find((g) => g.id === activeTab.gangId)
+        ?.corpora.find((c) => c.id === activeTab.corpusId)) ||
+    null;
   const hasUnresolvedQA = useMemo(
     () => activeTab?.messages.some((m) => m.qaBlock && !m.qaResolution) ?? false,
     [activeTab],
@@ -94,7 +105,10 @@ export function CenterPane({
       const gang = community.gangs.find((g) => g.id === detail.gangId);
       const corpus = gang?.corpora.find((c) => c.id === detail.corpusId);
       if (!gang || !corpus) return;
-      onColdOpenReady(gang.id, detail.tabId, welcomeMessageFor(corpus.name));
+      // Slice four: welcomeMessageFor branches on corpus.role (navigator /
+      // curator / standard) so the cold-open opener character reflects the
+      // corpus's role rather than every cold-open reading identically.
+      onColdOpenReady(gang.id, detail.tabId, welcomeMessageFor(corpus, gang));
     };
     window.addEventListener("noodal:cold-open", handler);
     return () => window.removeEventListener("noodal:cold-open", handler);
@@ -210,6 +224,7 @@ export function CenterPane({
 
       {activeTab ? (
         <>
+          {activeCorpus && <CorpusHeader corpus={activeCorpus} />}
           <ScrollArea className="flex-1">
             <div className="p-4 space-y-4 max-w-4xl mx-auto w-full">
               {activeTab.coldOpen && (
@@ -461,6 +476,28 @@ function renderMessageContent(
   }
   if (lastIndex < content.length) out.push(content.slice(lastIndex));
   return out;
+}
+
+// Per-corpus header strip rendered above the message list when an active tab
+// exists (spec Phase 5 / c96e3b5d). Shows corpus name + role badge (Navigator
+// or Curator) + imprint metadata placeholder. Real imprint metadata fetch
+// lands when the corpus model wires up; for now the placeholder mirrors the
+// status string the cold-open opener uses.
+function CorpusHeader({ corpus }: { corpus: Corpus }) {
+  return (
+    <div className="border-b border-border bg-background px-4 py-2 flex items-center gap-3">
+      <span className="text-sm font-medium truncate">{corpus.name}</span>
+      {corpus.role === "navigator" && (
+        <Badge variant="default" className="text-xs">Navigator</Badge>
+      )}
+      {corpus.role === "curator" && (
+        <Badge variant="secondary" className="text-xs">Curator</Badge>
+      )}
+      <span className="text-xs text-muted-foreground truncate ml-auto">
+        imprint v12 · 0 pending · 15 deltas
+      </span>
+    </div>
+  );
 }
 
 function ColdOpenMessage({
