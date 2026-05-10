@@ -34,25 +34,28 @@ const buttonVariants = cva(
   },
 );
 
-function Button({
-  className,
-  variant,
-  size,
-  asChild = false,
-  ...props
-}: React.ComponentProps<"button"> &
+type ButtonProps = React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
-  }) {
-  const Comp = asChild ? Slot : "button";
+  };
 
+// Wrapped in React.forwardRef so Radix `asChild` consumers (DropdownMenuTrigger,
+// TooltipTrigger, CollapsibleTrigger, etc.) can forward their ref through the
+// Slot without React 18 emitting "Function components cannot be given refs"
+// warnings. Matches the canonical shadcn upstream Button shape.
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
+  { className, variant, size, asChild = false, ...props },
+  ref,
+) {
+  const Comp = asChild ? Slot : "button";
   return (
     <Comp
+      ref={ref}
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />
   );
-}
+});
 
 export { Button, buttonVariants };
