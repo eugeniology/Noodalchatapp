@@ -217,6 +217,21 @@ export default function App() {
     else panel.collapse();
   };
 
+  // Right-pane collapse mirrors the left rail pattern. The pane collapses to an
+  // icon-strip-only width when all four sections are closed (RightPane signals
+  // via onControlPanel("collapse")) and expands when the user restores a
+  // section by clicking an icon. Founder bug fix from 2026-05-10 Figma eyeball:
+  // previously the pane kept its full width even when all sections were
+  // collapsed, leaving a wide blank interior next to the outer-edge icon strip.
+  const rightPanelRef = useRef<ImperativePanelHandle>(null);
+  const [rightPaneCollapsed, setRightPaneCollapsed] = useState(false);
+  const controlRightPanel = useCallback((action: "collapse" | "expand") => {
+    const panel = rightPanelRef.current;
+    if (!panel) return;
+    if (action === "collapse" && !panel.isCollapsed()) panel.collapse();
+    if (action === "expand" && panel.isCollapsed()) panel.expand();
+  }, []);
+
   useEffect(() => {
     if (isDark) document.documentElement.classList.add("dark");
     else document.documentElement.classList.remove("dark");
@@ -263,20 +278,14 @@ export default function App() {
     if (curator) openTabForCorpus(gang, curator);
   };
 
-  // Slice four: back-arrow is two-level. From any non-community-admin gang it
-  // returns to community-admin (the navigator's home, with chat state warm).
-  // From community-admin it returns to the true community-level rail view
-  // (orientedGang = null → flat gang list, chat shows the transient "Select a
-  // gang" state). That gives users a path to navigate between gangs without
-  // ever losing the per-gang tab strips they've accumulated.
-  const handleGangBack = () => {
-    if (orientedGang?.id === "community-admin") {
-      setOrientedGang(null);
-      return;
-    }
-    const adminGang = community.gangs.find((g) => g.id === "community-admin");
-    setOrientedGang(adminGang ?? null);
-  };
+  // Back-arrow is one-level: always returns to the community-level gang list
+  // (orientedGang = null). The slice-four two-level behavior (non-admin → home →
+  // gang-list) was retracted on founder eyeball — the community-admin
+  // intermediate step read as a dead-end. Per-gang tab strips are preserved by
+  // tabsByGang so navigating between gangs from the list resumes prior state.
+  // Slice-four's navigator-home elegance is preserved through cold-open boot
+  // orientation + community-admin appearing in the gang list.
+  const handleGangBack = () => setOrientedGang(null);
 
   const setTabsForGang = useCallback((gangId: string, mutator: (prev: ChatTab[]) => ChatTab[]) => {
     setTabsByGang((prev) => ({ ...prev, [gangId]: mutator(prev[gangId] ?? []) }));
@@ -559,13 +568,24 @@ export default function App() {
 
         <ResizableHandle />
 
-        <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
+        <ResizablePanel
+          ref={rightPanelRef}
+          defaultSize={25}
+          minSize={20}
+          maxSize={35}
+          collapsible
+          collapsedSize={4}
+          onCollapse={() => setRightPaneCollapsed(true)}
+          onExpand={() => setRightPaneCollapsed(false)}
+        >
           <RightPane
             status={status}
             chatHistory={currentChatHistory}
             loops={seedLoops}
             quickAsks={seedQuickAsks}
             onQuickAskClick={handleQuickAskClick}
+            panelCollapsed={rightPaneCollapsed}
+            onControlPanel={controlRightPanel}
           />
         </ResizablePanel>
       </ResizablePanelGroup>
