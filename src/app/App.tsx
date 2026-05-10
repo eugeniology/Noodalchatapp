@@ -28,11 +28,26 @@ const seedCommunity: Community = {
   name: "Sagacity",
   gangs: [
     {
+      id: "community-admin",
+      name: "community-admin",
+      status: "green",
+      curatorCorpusId: "community-navigator",
+      // Slice four: community-admin is the home of the community navigator.
+      // c96e3b5d locks "Community level: community navigator (a corpus inside
+      // community-admin gang)". Phase A model (e3922a4d): the navigator corpus
+      // also serves as the gang's curator — one corpus, both hats, until
+      // Phase B Navigator deploys.
+      corpora: [
+        { id: "community-navigator", name: "community-navigator", status: "green", role: "navigator" },
+      ],
+    },
+    {
       id: "platform-team",
       name: "corpora platform team",
       status: "yellow",
+      curatorCorpusId: "platform-curator",
       corpora: [
-        { id: "platform-curator", name: "platform-team-curator", status: "green" },
+        { id: "platform-curator", name: "platform-team-curator", status: "green", role: "curator" },
         { id: "sagacity-lead", name: "sagacity-lead", status: "green" },
         { id: "organic-loop", name: "organic-loop", status: "green" },
         { id: "sagacity-sre", name: "sagacity-sre", status: "yellow" },
@@ -43,13 +58,19 @@ const seedCommunity: Community = {
       id: "leadership",
       name: "corpora leadership",
       status: "green",
-      corpora: [],
+      curatorCorpusId: "leadership-curator",
+      corpora: [
+        { id: "leadership-curator", name: "leadership-curator", status: "green", role: "curator" },
+      ],
     },
     {
       id: "marketing",
       name: "noodal-marketing",
       status: "green",
-      corpora: [],
+      curatorCorpusId: "marketing-curator",
+      corpora: [
+        { id: "marketing-curator", name: "marketing-curator", status: "green", role: "curator" },
+      ],
     },
   ],
 };
@@ -73,15 +94,36 @@ function statusFor(name: string): string {
   return `${name} — imprint v12, 0 pending tasks, 15 deltas absorbed in last metabolism pass.`;
 }
 
-// Welcome / cold-open content. Lives in ChatTab.coldOpen (spec Phase 2 convergence),
-// not in messages[]. The CenterPane cold-open subscriber renders this above the
-// regular message list as a <ColdOpenMessage>.
-export function welcomeMessageFor(corpusName: string): Message {
+// Welcome / cold-open content (slice four: branched by corpus.role).
+//
+// Lives in ChatTab.coldOpen — populated by the CenterPane noodal:cold-open
+// subscriber, not seeded into messages[]. The CenterPane renders it as a
+// <ColdOpenMessage> above the message list. Character differs by role per
+// e3922a4d (Navigator = engagement / orientation across community; Curator =
+// administrator / producer of a gang; standard = no role assignment).
+export function welcomeMessageFor(corpus: Corpus, gang: Gang): Message {
   const askLines = seedQuickAsks.slice(0, 3).map((q) => `• ${q.text}`).join("\n");
+  let opener: string;
+  if (corpus.role === "navigator") {
+    opener =
+      `${corpus.name} — I help you find your way across ${gang.name === "community-admin" ? "this community" : `the ${gang.name} gang`}.\n` +
+      `Ask me what's active, who owns what, where a topic lives.\n\n` +
+      `Most asked of me lately:\n${askLines}\n\n` +
+      `Try: [[corpus:platform-team/platform-curator|platform team curator]] · [[corpus:platform-team/sagacity-lead|sagacity-lead]] · [[loop:ea89973c|slice-three loop]] · [[artifact:820310ef|slice-three spec]]`;
+  } else if (corpus.role === "curator") {
+    opener =
+      `${statusFor(corpus.name)}\n\nI administer the ${gang.name} gang. Ask me about its corpora, its loops, what's blocked, recent decisions.\n\n` +
+      `Most asked of me lately:\n${askLines}\n\n` +
+      `Related: [[corpus:${gang.id}/${corpus.id}|${corpus.name}]]`;
+  } else {
+    opener =
+      `${statusFor(corpus.name)}\n\nMost asked of me lately:\n${askLines}\n\n` +
+      `Related: [[corpus:platform-team/sagacity-lead|sagacity-lead]] · [[corpus:platform-team/organic-loop|organic-loop]] · [[loop:ea89973c|slice-three loop]] · [[artifact:820310ef|spec]]`;
+  }
   return {
-    id: `cold-${corpusName}-${Date.now()}`,
+    id: `cold-${corpus.id}-${Date.now()}`,
     role: "assistant",
-    content: `${statusFor(corpusName)}\n\nMost asked of me lately:\n${askLines}\n\nRelated: [[corpus:platform-team/sagacity-lead|sagacity-lead]] · [[corpus:platform-team/organic-loop|organic-loop]] · [[loop:ea89973c|slice-three loop]] · [[artifact:820310ef|spec]]`,
+    content: opener,
     timestamp: new Date(),
   };
 }
@@ -148,8 +190,14 @@ function makeAssistantReply(content: string): Message {
 export default function App() {
   const [isDark, setIsDark] = useState(false);
   const [community] = useState<Community>(seedCommunity);
-  // Cold open at community level (c96e3b5d): no gang oriented.
-  const [orientedGang, setOrientedGang] = useState<Gang | null>(null);
+  // Slice four: cold-open boots into community-admin oriented with the
+  // community-navigator tab open. Replaces the slice-two/three "no gang
+  // oriented" cold-empty state. c96e3b5d locks "Community level: community
+  // navigator (a corpus inside community-admin gang)" — community-admin IS
+  // the navigator's home.
+  const [orientedGang, setOrientedGang] = useState<Gang | null>(
+    () => seedCommunity.gangs.find((g) => g.id === "community-admin") ?? null,
+  );
 
   // Per-gang tab state (spec Phase 1). Switching gangs swaps the visible strip;
   // tabs in the originating gang persist for when the user navigates back.
@@ -174,6 +222,21 @@ export default function App() {
     else document.documentElement.classList.remove("dark");
   }, [isDark]);
 
+  // Slice four: on first mount, open the community-navigator tab in
+  // community-admin so cold-open isn't an empty "Select a gang" screen.
+  // Guarded by didBoot ref to survive React 18 StrictMode double-invoke in dev.
+  const didBoot = useRef(false);
+  useEffect(() => {
+    if (didBoot.current) return;
+    didBoot.current = true;
+    const adminGang = community.gangs.find((g) => g.id === "community-admin");
+    if (!adminGang || !adminGang.curatorCorpusId) return;
+    const navigator = adminGang.corpora.find((c) => c.id === adminGang.curatorCorpusId);
+    if (!navigator) return;
+    openTabForCorpus(adminGang, navigator);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const toggleTheme = () => setIsDark(!isDark);
 
   const currentGangId = orientedGang?.id ?? null;
@@ -181,8 +244,39 @@ export default function App() {
   const activeTabId = currentGangId ? activeTabIdByGang[currentGangId] ?? null : null;
   const activeTab = visibleTabs.find((tab) => tab.id === activeTabId) ?? null;
 
-  const handleGangSelect = (gang: Gang) => setOrientedGang(gang);
-  const handleGangBack = () => setOrientedGang(null);
+  // Slice four: walking-into-gang = walking-into-curator gesture (c96e3b5d).
+  // When orienting on a gang that has no active tab (fresh visit OR all tabs
+  // closed), auto-open the gang's designated curator. If tabs exist with an
+  // active one, preserve the per-gang state from slice three.
+  const handleGangSelect = (gang: Gang) => {
+    setOrientedGang(gang);
+    const existingTabs = tabsByGang[gang.id] ?? [];
+    const currentActive = activeTabIdByGang[gang.id] ?? null;
+    const shouldAutoOpen = existingTabs.length === 0 || currentActive === null;
+    if (!shouldAutoOpen || !gang.curatorCorpusId) return;
+    const existingCuratorTab = existingTabs.find((t) => t.corpusId === gang.curatorCorpusId);
+    if (existingCuratorTab) {
+      setActiveTabIdForGang(gang.id, existingCuratorTab.id);
+      return;
+    }
+    const curator = gang.corpora.find((c) => c.id === gang.curatorCorpusId);
+    if (curator) openTabForCorpus(gang, curator);
+  };
+
+  // Slice four: back-arrow is two-level. From any non-community-admin gang it
+  // returns to community-admin (the navigator's home, with chat state warm).
+  // From community-admin it returns to the true community-level rail view
+  // (orientedGang = null → flat gang list, chat shows the transient "Select a
+  // gang" state). That gives users a path to navigate between gangs without
+  // ever losing the per-gang tab strips they've accumulated.
+  const handleGangBack = () => {
+    if (orientedGang?.id === "community-admin") {
+      setOrientedGang(null);
+      return;
+    }
+    const adminGang = community.gangs.find((g) => g.id === "community-admin");
+    setOrientedGang(adminGang ?? null);
+  };
 
   const setTabsForGang = useCallback((gangId: string, mutator: (prev: ChatTab[]) => ChatTab[]) => {
     setTabsByGang((prev) => ({ ...prev, [gangId]: mutator(prev[gangId] ?? []) }));
