@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ComponentType } from "react";
 import { X, Activity, History, Repeat, Sparkles } from "lucide-react";
 import { Button } from "./ui/button";
@@ -14,6 +14,15 @@ interface RightPaneProps {
   quickAsks: QuickAsk[];
   onQuickAskClick: (ask: QuickAsk) => void;
   onHistoryClick?: (entry: ChatHistoryEntry) => void;
+  // Driven by App's ResizablePanel collapse state. When true, the pane is at
+  // collapsed-size width and the rail renders icon-strip-only. When false, the
+  // pane is at normal width and the rail renders the section column + outer-
+  // edge icon strip for individually-collapsed sections.
+  panelCollapsed: boolean;
+  // Callback to request panel collapse/expand. Called on (a) last section ×
+  // → request collapse; (b) icon click in collapsed mode → request expand
+  // (also restores the section locally so the user sees content on expand).
+  onControlPanel: (action: "collapse" | "expand") => void;
 }
 
 type SectionId = "status" | "history" | "loops" | "quickAsks";
@@ -34,6 +43,8 @@ export function RightPane({
   quickAsks,
   onQuickAskClick,
   onHistoryClick,
+  panelCollapsed,
+  onControlPanel,
 }: RightPaneProps) {
   // Per-session only (no localStorage) per c96e3b5d. Each × close tucks the
   // section's icon into the outer-edge strip; click to restore.
@@ -58,6 +69,48 @@ export function RightPane({
   };
 
   const hasCollapsed = SECTION_ORDER.some((id) => collapsed[id]);
+  const allCollapsed = SECTION_ORDER.every((id) => collapsed[id]);
+
+  // When the last open section is closed, request panel collapse. Don't
+  // auto-expand on !allCollapsed — that path runs through icon-click + explicit
+  // onControlPanel("expand"), which restores the section in the same gesture.
+  useEffect(() => {
+    if (allCollapsed && !panelCollapsed) onControlPanel("collapse");
+  }, [allCollapsed, panelCollapsed, onControlPanel]);
+
+  // Icon-strip-only mode: rendered when the ResizablePanel is at collapsed
+  // width. Lists all four sections as icons (any of them can be the user's
+  // entry point back into the pane). Clicking an icon restores that section
+  // AND requests panel expand in the same gesture.
+  if (panelCollapsed) {
+    return (
+      <TooltipProvider delayDuration={200}>
+        <div className="h-full w-full border-l border-border flex flex-col items-center py-2 gap-1 bg-background">
+          {SECTION_ORDER.map((id) => {
+            const Icon = SECTION_META[id].icon;
+            return (
+              <Tooltip key={id}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      restore(id);
+                      onControlPanel("expand");
+                    }}
+                    aria-label={`Open ${SECTION_META[id].label}`}
+                    className="h-8 w-8 rounded hover:bg-muted flex items-center justify-center text-muted-foreground hover:text-foreground"
+                  >
+                    <Icon className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="left">{SECTION_META[id].label}</TooltipContent>
+              </Tooltip>
+            );
+          })}
+        </div>
+      </TooltipProvider>
+    );
+  }
 
   return (
     <div className="flex h-full bg-background border-l border-border">
