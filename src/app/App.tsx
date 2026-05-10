@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ImperativePanelHandle } from "react-resizable-panels";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./components/ui/resizable";
 import { TopBar } from "./components/TopBar";
 import { LeftRail } from "./components/LeftRail";
@@ -7,7 +8,10 @@ import { RightPane } from "./components/RightPane";
 import { ScratchPad } from "./components/ScratchPad";
 import type { Community, Gang, Corpus, ChatTab, Message, ChatHistoryEntry, Loop, QuickAsk } from "./types";
 
-// Seed data
+// Rail data is currently seeded in-memory. When this becomes a real fetch (with RBAC),
+// the visibility-not-error rule from b8dcfb02 applies: filter rail data at fetch time
+// based on the user's role/permissions, never on click. Inaccessible corpora simply do
+// not appear; clicks never produce "you can't access this" errors.
 const seedCommunity: Community = {
   id: "sagacity",
   name: "Sagacity",
@@ -15,6 +19,7 @@ const seedCommunity: Community = {
     {
       id: "platform-team",
       name: "corpora platform team",
+      status: "yellow",
       corpora: [
         { id: "platform-curator", name: "platform-team-curator", status: "green" },
         { id: "sagacity-lead", name: "sagacity-lead", status: "green" },
@@ -26,11 +31,13 @@ const seedCommunity: Community = {
     {
       id: "leadership",
       name: "corpora leadership",
+      status: "green",
       corpora: [],
     },
     {
       id: "marketing",
       name: "noodal-marketing",
+      status: "green",
       corpora: [],
     },
   ],
@@ -57,29 +64,39 @@ const seedQuickAsks: QuickAsk[] = [
   { id: "qa5", text: "open ADRs" },
 ];
 
+function statusFor(name: string): string {
+  return `${name} — imprint v12, 0 pending tasks, 15 deltas absorbed in last metabolism pass.`;
+}
+
+function welcomeMessageFor(corpusName: string): Message {
+  const askLines = seedQuickAsks.slice(0, 3).map((q) => `• ${q.text}`).join("\n");
+  // Inline corpus link demo: see CenterPane MessageComponent for the [[corpus:...]] parser.
+  return {
+    id: `msg-welcome-${corpusName}-${Date.now()}`,
+    role: "assistant",
+    content: `${statusFor(corpusName)}\n\nMost asked of me lately:\n${askLines}\n\nRelated: [[corpus:platform-team/sagacity-lead|sagacity-lead]] · [[corpus:platform-team/organic-loop|organic-loop]]`,
+    timestamp: new Date(),
+  };
+}
+
 export default function App() {
   const [isDark, setIsDark] = useState(false);
   const [community] = useState<Community>(seedCommunity);
-  const [orientedGang, setOrientedGang] = useState<Gang | null>(
-    seedCommunity.gangs[0]
-  );
-  const [tabs, setTabs] = useState<ChatTab[]>([
-    {
-      id: "tab-sagacity-lead",
-      corpusId: "sagacity-lead",
-      corpusName: "sagacity-lead",
-      messages: [
-        {
-          id: "m1",
-          role: "system",
-          content: "sagacity-lead — imprint v12, 0 pending tasks, 15 deltas absorbed in last metabolism pass.",
-          timestamp: new Date(),
-        },
-      ],
-    },
-  ]);
-  const [activeTabId, setActiveTabId] = useState<string>("tab-sagacity-lead");
+  // Cold open at community level (c96e3b5d): no gang oriented, no tabs.
+  const [orientedGang, setOrientedGang] = useState<Gang | null>(null);
+  const [tabs, setTabs] = useState<ChatTab[]>([]);
+  const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [scratchPadOpen, setScratchPadOpen] = useState(false);
+
+  // Left-rail collapse state is per-session (no persistence) per c96e3b5d.
+  const leftPanelRef = useRef<ImperativePanelHandle>(null);
+  const [leftRailCollapsed, setLeftRailCollapsed] = useState(false);
+  const handleToggleLeftRail = () => {
+    const panel = leftPanelRef.current;
+    if (!panel) return;
+    if (panel.isCollapsed()) panel.expand();
+    else panel.collapse();
+  };
 
   useEffect(() => {
     if (isDark) {
@@ -89,32 +106,54 @@ export default function App() {
     }
   }, [isDark]);
 
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-  };
-
-  const handleGangSelect = (gang: Gang) => {
-    setOrientedGang(gang);
-  };
-
-  const handleGangBack = () => {
-    setOrientedGang(null);
-  };
+  const toggleTheme = () => setIsDark(!isDark);
+  const handleGangSelect = (gang: Gang) => setOrientedGang(gang);
+  const handleGangBack = () => setOrientedGang(null);
 
   const handleCorpusSelect = (corpus: Corpus) => {
     const existingTab = tabs.find((tab) => tab.corpusId === corpus.id);
     if (existingTab) {
       setActiveTabId(existingTab.id);
-    } else {
-      const newTab: ChatTab = {
-        id: `tab-${corpus.id}`,
-        corpusId: corpus.id,
-        corpusName: corpus.name,
-        messages: [],
-      };
-      setTabs([...tabs, newTab]);
-      setActiveTabId(newTab.id);
+      return;
     }
+    const newTab: ChatTab = {
+      id: `tab-${corpus.id}`,
+      corpusId: corpus.id,
+      corpusName: corpus.name,
+      messages: [welcomeMessageFor(corpus.name)],
+    };
+    setTabs([...tabs, newTab]);
+    setActiveTabId(newTab.id);
+  };
+
+  // Canonical landing path for inline corpus link clicks AND future deep-links
+  // (per b8dcfb02 § "Deep-link unification"). URL parsing is owned by sagacity-lead
+  // loop cda97be2 — that work plugs into this single integration point.
+  //
+  // Behavior: orient the rail on the gang, ALWAYS open a fresh center tab (vs.
+  // handleCorpusSelect which reuses an existing tab), and dispatch a
+  // `noodal:cold-open` window event the chat surface can subscribe to. Event
+  // dispatch chosen as a window CustomEvent for cross-tree decoupling without
+  // a context provider.
+  const landInCorpus = (gangId: string, corpusId: string) => {
+    const gang = community.gangs.find((g) => g.id === gangId);
+    if (!gang) return;
+    const corpus = gang.corpora.find((c) => c.id === corpusId);
+    if (!corpus) return;
+    setOrientedGang(gang);
+    const newTab: ChatTab = {
+      id: `tab-${corpus.id}-${Date.now()}`,
+      corpusId: corpus.id,
+      corpusName: corpus.name,
+      messages: [welcomeMessageFor(corpus.name)],
+    };
+    setTabs((prev) => [...prev, newTab]);
+    setActiveTabId(newTab.id);
+    window.dispatchEvent(
+      new CustomEvent("noodal:cold-open", {
+        detail: { type: "cold-open", corpusId, gangId },
+      }),
+    );
   };
 
   const handleTabClose = (tabId: string) => {
@@ -127,9 +166,7 @@ export default function App() {
     }
   };
 
-  const handleTabSelect = (tabId: string) => {
-    setActiveTabId(tabId);
-  };
+  const handleTabSelect = (tabId: string) => setActiveTabId(tabId);
 
   const handleSendMessage = (tabId: string, content: string) => {
     setTabs((prevTabs) =>
@@ -158,20 +195,28 @@ export default function App() {
   };
 
   const handleQuickAskClick = (ask: QuickAsk) => {
-    if (activeTabId) {
-      handleSendMessage(activeTabId, ask.text);
-    }
+    if (activeTabId) handleSendMessage(activeTabId, ask.text);
   };
 
   const activeTab = tabs.find((tab) => tab.id === activeTabId);
   const selectedCorpusId = activeTab?.corpusId;
+  const status = activeTab ? statusFor(activeTab.corpusName) : "";
 
   return (
     <div className="size-full flex flex-col bg-background">
       <TopBar community={community} isDark={isDark} onToggleTheme={toggleTheme} />
 
       <ResizablePanelGroup direction="horizontal" className="flex-1">
-        <ResizablePanel defaultSize={18} minSize={15} maxSize={30}>
+        <ResizablePanel
+          ref={leftPanelRef}
+          defaultSize={18}
+          minSize={15}
+          maxSize={30}
+          collapsible
+          collapsedSize={4}
+          onCollapse={() => setLeftRailCollapsed(true)}
+          onExpand={() => setLeftRailCollapsed(false)}
+        >
           <LeftRail
             gangs={community.gangs}
             orientedGang={orientedGang}
@@ -180,6 +225,8 @@ export default function App() {
             onCorpusSelect={handleCorpusSelect}
             onScratchPadOpen={() => setScratchPadOpen(true)}
             selectedCorpusId={selectedCorpusId}
+            isCollapsed={leftRailCollapsed}
+            onToggleCollapse={handleToggleLeftRail}
           />
         </ResizablePanel>
 
@@ -192,6 +239,7 @@ export default function App() {
             onTabClose={handleTabClose}
             onTabSelect={handleTabSelect}
             onSendMessage={handleSendMessage}
+            onLandInCorpus={landInCorpus}
           />
         </ResizablePanel>
 
@@ -199,7 +247,7 @@ export default function App() {
 
         <ResizablePanel defaultSize={25} minSize={20} maxSize={35}>
           <RightPane
-            status="sagacity-lead — imprint v12, 0 pending tasks, 15 deltas absorbed in last metabolism pass."
+            status={status}
             chatHistory={seedChatHistory}
             loops={seedLoops}
             quickAsks={seedQuickAsks}

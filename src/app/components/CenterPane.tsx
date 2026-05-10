@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { X, Paperclip, Send, ChevronDown, ChevronRight } from "lucide-react";
 import { Button } from "./ui/button";
@@ -15,6 +16,7 @@ interface CenterPaneProps {
   onSendMessage: (tabId: string, content: string) => void;
   onContinueSession?: (tabId: string) => void;
   hasPreviousSession?: boolean;
+  onLandInCorpus?: (gangId: string, corpusId: string) => void;
 }
 
 export function CenterPane({
@@ -25,6 +27,7 @@ export function CenterPane({
   onSendMessage,
   onContinueSession,
   hasPreviousSession = false,
+  onLandInCorpus,
 }: CenterPaneProps) {
   const [input, setInput] = useState("");
 
@@ -84,7 +87,11 @@ export function CenterPane({
           <ScrollArea className="flex-1">
             <div className="p-4 space-y-4 max-w-4xl mx-auto w-full">
               {activeTab.messages.map((message) => (
-                <MessageComponent key={message.id} message={message} />
+                <MessageComponent
+                  key={message.id}
+                  message={message}
+                  onLandInCorpus={onLandInCorpus}
+                />
               ))}
             </div>
           </ScrollArea>
@@ -133,7 +140,48 @@ export function CenterPane({
   );
 }
 
-function MessageComponent({ message }: { message: Message }) {
+// Inline corpus reference syntax: [[corpus:gangId/corpusId|Display Text]]
+// Renderer in renderMessageContent splits content and emits buttons that call
+// onLandInCorpus, which is the canonical landing path (b8dcfb02 § "Deep-link unification").
+const CORPUS_REF = /\[\[corpus:([^/\]]+)\/([^|\]]+)\|([^\]]+)\]\]/g;
+
+function renderMessageContent(
+  content: string,
+  onLandInCorpus?: (gangId: string, corpusId: string) => void,
+): ReactNode[] {
+  const out: ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+  CORPUS_REF.lastIndex = 0;
+  let key = 0;
+  while ((match = CORPUS_REF.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      out.push(content.slice(lastIndex, match.index));
+    }
+    const [, gangId, corpusId, display] = match;
+    out.push(
+      <button
+        key={`ref-${key++}`}
+        type="button"
+        onClick={() => onLandInCorpus?.(gangId, corpusId)}
+        className="text-primary underline decoration-dotted underline-offset-2 hover:decoration-solid"
+      >
+        {display}
+      </button>,
+    );
+    lastIndex = match.index + match[0].length;
+  }
+  if (lastIndex < content.length) out.push(content.slice(lastIndex));
+  return out;
+}
+
+function MessageComponent({
+  message,
+  onLandInCorpus,
+}: {
+  message: Message;
+  onLandInCorpus?: (gangId: string, corpusId: string) => void;
+}) {
   const isUser = message.role === "user";
   const isSystem = message.role === "system";
 
@@ -153,7 +201,9 @@ function MessageComponent({ message }: { message: Message }) {
         </AvatarFallback>
       </Avatar>
       <div className="flex-1 space-y-2">
-        <div className="text-sm whitespace-pre-wrap">{message.content}</div>
+        <div className="text-sm whitespace-pre-wrap">
+          {renderMessageContent(message.content, onLandInCorpus)}
+        </div>
         {message.toolUse && message.toolUse.length > 0 && (
           <div className="space-y-2">
             {message.toolUse.map((tool) => (

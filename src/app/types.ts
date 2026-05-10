@@ -11,6 +11,7 @@ export interface Corpus {
 export interface Gang {
   id: string;
   name: string;
+  status?: CorpusStatus;
   corpora: Corpus[];
 }
 
