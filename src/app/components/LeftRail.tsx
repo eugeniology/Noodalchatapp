@@ -33,14 +33,22 @@ export function LeftRail(props: LeftRailProps) {
   const [filter, setFilter] = useState("");
   const handleScopeChange = () => setFilter("");
 
-  const filteredGangs = props.gangs.filter((g) =>
-    g.name.toLowerCase().includes(filter.toLowerCase()),
-  );
-  const filteredCorpora = props.orientedGang
-    ? props.orientedGang.corpora.filter((c) =>
-        c.name.toLowerCase().includes(filter.toLowerCase()),
-      )
-    : [];
+  // c96e3b5d three-scope takeover: community-admin orientation IS the
+  // community level. The rail renders the gang list (no dock-row) and the
+  // community-admin gang is filtered out of that list (it's the implicit
+  // home, not a clickable gang). Any other orientedGang renders the
+  // gang-level rail (dock-row + corpus list).
+  const isCommunityLevel = props.orientedGang?.id === "community-admin";
+
+  const filteredGangs = props.gangs
+    .filter((g) => g.id !== "community-admin")
+    .filter((g) => g.name.toLowerCase().includes(filter.toLowerCase()));
+  const filteredCorpora =
+    props.orientedGang && !isCommunityLevel
+      ? props.orientedGang.corpora.filter((c) =>
+          c.name.toLowerCase().includes(filter.toLowerCase()),
+        )
+      : [];
 
   if (props.isCollapsed) {
     return (
@@ -66,7 +74,7 @@ export function LeftRail(props: LeftRailProps) {
     <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border">
       <div className="p-3 space-y-3">
         <div className="flex items-center gap-1">
-          {props.orientedGang ? (
+          {props.orientedGang && !isCommunityLevel ? (
             <Button
               variant="ghost"
               size="sm"
@@ -105,7 +113,7 @@ export function LeftRail(props: LeftRailProps) {
 
       <ScrollArea className="flex-1 px-2">
         <div className="space-y-0.5 pb-2">
-          {!props.orientedGang
+          {!props.orientedGang || isCommunityLevel
             ? filteredGangs.map((gang) => (
                 <Button
                   key={gang.id}
@@ -166,10 +174,11 @@ interface CollapsedRailProps extends LeftRailProps {
 }
 
 function CollapsedRail(props: CollapsedRailProps) {
+  const isCommunityLevel = props.orientedGang?.id === "community-admin";
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border items-center py-2 gap-1">
-        {props.orientedGang && (
+        {props.orientedGang && !isCommunityLevel && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -229,7 +238,7 @@ function CollapsedRail(props: CollapsedRailProps) {
 
         <ScrollArea className="flex-1 w-full">
           <div className="flex flex-col items-center gap-1 py-1">
-            {!props.orientedGang
+            {!props.orientedGang || isCommunityLevel
               ? props.filteredGangs.map((gang) => (
                   <Tooltip key={gang.id}>
                     <TooltipTrigger asChild>

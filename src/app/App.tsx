@@ -28,15 +28,15 @@ const seedCommunity: Community = {
   name: "Sagacity",
   gangs: [
     {
+      // c96e3b5d: "Community level: community navigator (a corpus inside
+      // community-admin gang)." community-admin is the home of the community
+      // navigator. In the UI, community-admin orientation IS the community
+      // level — the LeftRail filters this gang out of the visible gang list
+      // and renders no dock-row when oriented on it.
       id: "community-admin",
       name: "community-admin",
       status: "green",
       curatorCorpusId: "community-navigator",
-      // Slice four: community-admin is the home of the community navigator.
-      // c96e3b5d locks "Community level: community navigator (a corpus inside
-      // community-admin gang)". Phase A model (e3922a4d): the navigator corpus
-      // also serves as the gang's curator — one corpus, both hats, until
-      // Phase B Navigator deploys.
       corpora: [
         { id: "community-navigator", name: "community-navigator", status: "green", role: "navigator" },
       ],
@@ -94,19 +94,15 @@ function statusFor(name: string): string {
   return `${name} — imprint v12, 0 pending tasks, 15 deltas absorbed in last metabolism pass.`;
 }
 
-// Welcome / cold-open content (slice four: branched by corpus.role).
-//
-// Lives in ChatTab.coldOpen — populated by the CenterPane noodal:cold-open
-// subscriber, not seeded into messages[]. The CenterPane renders it as a
-// <ColdOpenMessage> above the message list. Character differs by role per
-// e3922a4d (Navigator = engagement / orientation across community; Curator =
-// administrator / producer of a gang; standard = no role assignment).
+// Welcome / cold-open content. Branched by corpus.role per e3922a4d Phase A
+// model: navigator-character (engagement, cross-scope orientation), curator-
+// character (administrator, gang-internal), or standard.
 export function welcomeMessageFor(corpus: Corpus, gang: Gang): Message {
   const askLines = seedQuickAsks.slice(0, 3).map((q) => `• ${q.text}`).join("\n");
   let opener: string;
   if (corpus.role === "navigator") {
     opener =
-      `${corpus.name} — I help you find your way across ${gang.name === "community-admin" ? "this community" : `the ${gang.name} gang`}.\n` +
+      `${corpus.name} — I help you find your way across ${gang.id === "community-admin" ? "this community" : `the ${gang.name} gang`}.\n` +
       `Ask me what's active, who owns what, where a topic lives.\n\n` +
       `Most asked of me lately:\n${askLines}\n\n` +
       `Try: [[corpus:platform-team/platform-curator|platform team curator]] · [[corpus:platform-team/sagacity-lead|sagacity-lead]] · [[loop:ea89973c|slice-three loop]] · [[artifact:820310ef|slice-three spec]]`;
@@ -139,8 +135,6 @@ function fallbackTitle(tab: ChatTab): string {
 }
 
 function makeAssistantReply(content: string): Message {
-  // Demo branches make the slice-three rendering primitives visible without a
-  // real LLM. Real streaming + tool-use wire-up lands in slice six.
   if (content === "demo: trigger q&a") {
     return {
       id: `msg-${Date.now()}-assistant`,
@@ -187,27 +181,36 @@ function makeAssistantReply(content: string): Message {
   };
 }
 
+const COMMUNITY_ADMIN_GANG = seedCommunity.gangs.find((g) => g.id === "community-admin")!;
+const COMMUNITY_NAVIGATOR = COMMUNITY_ADMIN_GANG.corpora[0];
+
 export default function App() {
   const [isDark, setIsDark] = useState(false);
   const [community] = useState<Community>(seedCommunity);
-  // Slice four: cold-open boots into community-admin oriented with the
-  // community-navigator tab open. Replaces the slice-two/three "no gang
-  // oriented" cold-empty state. c96e3b5d locks "Community level: community
-  // navigator (a corpus inside community-admin gang)" — community-admin IS
-  // the navigator's home.
-  const [orientedGang, setOrientedGang] = useState<Gang | null>(
-    () => seedCommunity.gangs.find((g) => g.id === "community-admin") ?? null,
-  );
 
-  // Per-gang tab state (spec Phase 1). Switching gangs swaps the visible strip;
-  // tabs in the originating gang persist for when the user navigates back.
-  const [tabsByGang, setTabsByGang] = useState<Record<string, ChatTab[]>>({});
-  const [activeTabIdByGang, setActiveTabIdByGang] = useState<Record<string, string | null>>({});
-  // Auto-evict-oldest target. Evicted tabs drop into the gang's Chat history.
-  const [chatHistoryByGang, setChatHistoryByGang] = useState<Record<string, ChatHistoryEntry[]>>({});
+  // Three-scope takeover (c96e3b5d):
+  //   • Community level → orientedGang === community-admin (LeftRail renders
+  //     gang list, no dock-row, community-admin filtered out)
+  //   • Gang level     → orientedGang is any non-admin gang (LeftRail renders
+  //     dock-row + corpus list)
+  //   • Corpus level   → same rail as gang level, with orientedCorpus !==
+  //     gang.curator (corpus row highlighted as selected)
+  //
+  // orientedGang is never null — community-admin IS the community level.
+  // orientedCorpus is always set — community-navigator at boot, gang.curator
+  // on gang orient, clicked corpus on corpus orient.
+  const [orientedGang, setOrientedGang] = useState<Gang>(COMMUNITY_ADMIN_GANG);
+  const [orientedCorpus, setOrientedCorpus] = useState<Corpus>(COMMUNITY_NAVIGATOR);
+
+  // Per-corpus tab state — retracts c698e710's per-gang lock. Each corpus has
+  // its own tab strip; switching the active corpus swaps the visible strip.
+  // Chat history is also per-corpus per c96e3b5d ("Chat history (last 5
+  // sessions with this corpus)").
+  const [tabsByCorpus, setTabsByCorpus] = useState<Record<string, ChatTab[]>>({});
+  const [activeTabIdByCorpus, setActiveTabIdByCorpus] = useState<Record<string, string | null>>({});
+  const [chatHistoryByCorpus, setChatHistoryByCorpus] = useState<Record<string, ChatHistoryEntry[]>>({});
   const [scratchPadOpen, setScratchPadOpen] = useState(false);
 
-  // Left-rail collapse state is per-session (no persistence) per c96e3b5d.
   const leftPanelRef = useRef<ImperativePanelHandle>(null);
   const [leftRailCollapsed, setLeftRailCollapsed] = useState(false);
   const handleToggleLeftRail = () => {
@@ -217,12 +220,6 @@ export default function App() {
     else panel.collapse();
   };
 
-  // Right-pane collapse mirrors the left rail pattern. The pane collapses to an
-  // icon-strip-only width when all four sections are closed (RightPane signals
-  // via onControlPanel("collapse")) and expands when the user restores a
-  // section by clicking an icon. Founder bug fix from 2026-05-10 Figma eyeball:
-  // previously the pane kept its full width even when all sections were
-  // collapsed, leaving a wide blank interior next to the outer-edge icon strip.
   const rightPanelRef = useRef<ImperativePanelHandle>(null);
   const [rightPaneCollapsed, setRightPaneCollapsed] = useState(false);
   const controlRightPanel = useCallback((action: "collapse" | "expand") => {
@@ -237,67 +234,19 @@ export default function App() {
     else document.documentElement.classList.remove("dark");
   }, [isDark]);
 
-  // Slice four: on first mount, open the community-navigator tab in
-  // community-admin so cold-open isn't an empty "Select a gang" screen.
-  // Guarded by didBoot ref to survive React 18 StrictMode double-invoke in dev.
-  const didBoot = useRef(false);
-  useEffect(() => {
-    if (didBoot.current) return;
-    didBoot.current = true;
-    const adminGang = community.gangs.find((g) => g.id === "community-admin");
-    if (!adminGang || !adminGang.curatorCorpusId) return;
-    const navigator = adminGang.corpora.find((c) => c.id === adminGang.curatorCorpusId);
-    if (!navigator) return;
-    openTabForCorpus(adminGang, navigator);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const toggleTheme = () => setIsDark(!isDark);
 
-  const currentGangId = orientedGang?.id ?? null;
-  const visibleTabs = currentGangId ? tabsByGang[currentGangId] ?? [] : [];
-  const activeTabId = currentGangId ? activeTabIdByGang[currentGangId] ?? null : null;
-  const activeTab = visibleTabs.find((tab) => tab.id === activeTabId) ?? null;
-
-  // Slice four: walking-into-gang = walking-into-curator gesture (c96e3b5d).
-  // When orienting on a gang that has no active tab (fresh visit OR all tabs
-  // closed), auto-open the gang's designated curator. If tabs exist with an
-  // active one, preserve the per-gang state from slice three.
-  const handleGangSelect = (gang: Gang) => {
-    setOrientedGang(gang);
-    const existingTabs = tabsByGang[gang.id] ?? [];
-    const currentActive = activeTabIdByGang[gang.id] ?? null;
-    const shouldAutoOpen = existingTabs.length === 0 || currentActive === null;
-    if (!shouldAutoOpen || !gang.curatorCorpusId) return;
-    const existingCuratorTab = existingTabs.find((t) => t.corpusId === gang.curatorCorpusId);
-    if (existingCuratorTab) {
-      setActiveTabIdForGang(gang.id, existingCuratorTab.id);
-      return;
-    }
-    const curator = gang.corpora.find((c) => c.id === gang.curatorCorpusId);
-    if (curator) openTabForCorpus(gang, curator);
-  };
-
-  // Back-arrow is one-level: always returns to the community-level gang list
-  // (orientedGang = null). The slice-four two-level behavior (non-admin → home →
-  // gang-list) was retracted on founder eyeball — the community-admin
-  // intermediate step read as a dead-end. Per-gang tab strips are preserved by
-  // tabsByGang so navigating between gangs from the list resumes prior state.
-  // Slice-four's navigator-home elegance is preserved through cold-open boot
-  // orientation + community-admin appearing in the gang list.
-  const handleGangBack = () => setOrientedGang(null);
-
-  const setTabsForGang = useCallback((gangId: string, mutator: (prev: ChatTab[]) => ChatTab[]) => {
-    setTabsByGang((prev) => ({ ...prev, [gangId]: mutator(prev[gangId] ?? []) }));
+  const setTabsForCorpus = useCallback((corpusId: string, mutator: (prev: ChatTab[]) => ChatTab[]) => {
+    setTabsByCorpus((prev) => ({ ...prev, [corpusId]: mutator(prev[corpusId] ?? []) }));
   }, []);
 
-  const setActiveTabIdForGang = useCallback((gangId: string, id: string | null) => {
-    setActiveTabIdByGang((prev) => ({ ...prev, [gangId]: id }));
+  const setActiveTabIdForCorpus = useCallback((corpusId: string, id: string | null) => {
+    setActiveTabIdByCorpus((prev) => ({ ...prev, [corpusId]: id }));
   }, []);
 
-  // Tab creation always seeds coldOpen as null; the CenterPane cold-open subscriber
-  // populates it via onColdOpenReady. The window event also fires here so any
-  // future cross-tree subscriber stays consistent.
+  // Tab creation seeds coldOpen=null; CenterPane's noodal:cold-open subscriber
+  // populates it via onColdOpenReady. The window event also fires here for
+  // cross-tree decoupling per e0d67b77.
   const openTabForCorpus = useCallback(
     (gang: Gang, corpus: Corpus, seedUserMessage?: string): ChatTab => {
       const newTab: ChatTab = {
@@ -310,8 +259,8 @@ export default function App() {
           : [],
         coldOpen: null,
       };
-      setTabsForGang(gang.id, (prev) => [...prev, newTab]);
-      setActiveTabIdForGang(gang.id, newTab.id);
+      setTabsForCorpus(corpus.id, (prev) => [...prev, newTab]);
+      setActiveTabIdForCorpus(corpus.id, newTab.id);
       window.dispatchEvent(
         new CustomEvent("noodal:cold-open", {
           detail: { type: "cold-open", corpusId: corpus.id, gangId: gang.id, tabId: newTab.id },
@@ -319,73 +268,121 @@ export default function App() {
       );
       return newTab;
     },
-    [setTabsForGang, setActiveTabIdForGang],
+    [setTabsForCorpus, setActiveTabIdForCorpus],
   );
 
-  const handleCorpusSelect = (corpus: Corpus) => {
-    if (!orientedGang) return;
-    const existing = (tabsByGang[orientedGang.id] ?? []).find((t) => t.corpusId === corpus.id);
-    if (existing) {
-      setActiveTabIdForGang(orientedGang.id, existing.id);
+  // Whenever orientedCorpus changes, make sure that corpus has an active tab.
+  // No tabs → open a fresh one. Tabs but no active → activate the most recent.
+  // Already-active → no-op. This is the single funnel through which every
+  // orientation gesture produces a usable chat surface.
+  const didBoot = useRef(false);
+  useEffect(() => {
+    const existing = tabsByCorpus[orientedCorpus.id] ?? [];
+    const currentActive = activeTabIdByCorpus[orientedCorpus.id] ?? null;
+    if (existing.length === 0) {
+      // Fresh corpus orient → open a tab. Guard the boot case with didBoot to
+      // survive React 18 StrictMode's effect double-invoke.
+      if (!didBoot.current && orientedCorpus.id === COMMUNITY_NAVIGATOR.id) {
+        didBoot.current = true;
+      }
+      openTabForCorpus(orientedGang, orientedCorpus);
       return;
     }
-    openTabForCorpus(orientedGang, corpus);
+    if (!currentActive) {
+      setActiveTabIdForCorpus(orientedCorpus.id, existing[existing.length - 1].id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orientedCorpus, orientedGang]);
+
+  const handleGangSelect = (gang: Gang) => {
+    // c96e3b5d: walking-into-gang = walking-into-curator. Orient on the gang
+    // AND set orientedCorpus to that gang's curator. ensureTabForCorpus
+    // effect picks it up and opens/activates the curator tab.
+    setOrientedGang(gang);
+    if (!gang.curatorCorpusId) return;
+    const curator = gang.corpora.find((c) => c.id === gang.curatorCorpusId);
+    if (curator) setOrientedCorpus(curator);
   };
 
-  // Canonical landing path for inline corpus link clicks AND future deep-links.
-  // Always opens a fresh tab in the target gang (cross-gang causes rail to re-orient).
+  // Back-arrow returns to community level: community-admin orientation,
+  // community-navigator as active corpus.
+  const handleGangBack = () => {
+    setOrientedGang(COMMUNITY_ADMIN_GANG);
+    setOrientedCorpus(COMMUNITY_NAVIGATOR);
+  };
+
+  const handleCorpusSelect = (corpus: Corpus) => {
+    // Within the currently oriented gang: clicking a different corpus orients
+    // on it. The orientedCorpus effect handles the rest.
+    setOrientedCorpus(corpus);
+  };
+
+  // Canonical landing path for inline corpus link clicks. Cross-gang click
+  // re-orients the rail to the target gang (c96e3b5d "honest jolt").
   const landInCorpus = (gangId: string, corpusId: string) => {
     const gang = community.gangs.find((g) => g.id === gangId);
     if (!gang) return;
     const corpus = gang.corpora.find((c) => c.id === corpusId);
     if (!corpus) return;
     setOrientedGang(gang);
-    openTabForCorpus(gang, corpus);
+    setOrientedCorpus(corpus);
   };
 
   // Wired into CenterPane via the noodal:cold-open subscriber. The subscriber
-  // computes welcomeMessageFor(corpusName) and calls back here. Spec Phase 2.
+  // computes welcomeMessageFor(corpus, gang) on event and calls back here.
   const handleColdOpenReady = useCallback(
-    (gangId: string, tabId: string, message: Message) => {
-      setTabsForGang(gangId, (prev) => prev.map((t) => (t.id === tabId ? { ...t, coldOpen: message } : t)));
+    (_gangId: string, tabId: string, message: Message) => {
+      // We don't know the corpusId from this call's signature; iterate to find
+      // which corpus's tabs contain this tabId. Cheap because tabsByCorpus has
+      // few entries.
+      setTabsByCorpus((prev) => {
+        const next = { ...prev };
+        for (const [corpusId, tabs] of Object.entries(prev)) {
+          if (tabs.some((t) => t.id === tabId)) {
+            next[corpusId] = tabs.map((t) => (t.id === tabId ? { ...t, coldOpen: message } : t));
+          }
+        }
+        return next;
+      });
     },
-    [setTabsForGang],
+    [],
   );
 
+  const visibleTabs = tabsByCorpus[orientedCorpus.id] ?? [];
+  const activeTabId = activeTabIdByCorpus[orientedCorpus.id] ?? null;
+  const activeTab = visibleTabs.find((t) => t.id === activeTabId) ?? null;
+
   const handleTabClose = (tabId: string) => {
-    if (!currentGangId) return;
-    const tabs = tabsByGang[currentGangId] ?? [];
-    const newTabs = tabs.filter((tab) => tab.id !== tabId);
-    setTabsForGang(currentGangId, () => newTabs);
+    const corpusId = orientedCorpus.id;
+    const tabs = tabsByCorpus[corpusId] ?? [];
+    const newTabs = tabs.filter((t) => t.id !== tabId);
+    setTabsForCorpus(corpusId, () => newTabs);
     if (activeTabId === tabId) {
-      setActiveTabIdForGang(currentGangId, newTabs.length > 0 ? newTabs[newTabs.length - 1].id : null);
+      setActiveTabIdForCorpus(corpusId, newTabs.length > 0 ? newTabs[newTabs.length - 1].id : null);
     }
   };
 
-  const handleTabSelect = (tabId: string) => {
-    if (!currentGangId) return;
-    setActiveTabIdForGang(currentGangId, tabId);
-  };
+  const handleTabSelect = (tabId: string) => setActiveTabIdForCorpus(orientedCorpus.id, tabId);
 
   const handleTabRename = (tabId: string, title: string) => {
-    if (!currentGangId) return;
-    setTabsForGang(currentGangId, (prev) =>
+    setTabsForCorpus(orientedCorpus.id, (prev) =>
       prev.map((t) => (t.id === tabId ? { ...t, title: title.trim() || t.title } : t)),
     );
   };
 
-  // Auto-evict-oldest on overflow (spec Phase 1). CenterPane measures width and
-  // calls this with the IDs of tabs to evict. Evicted tabs drop into the gang's
-  // Chat history (folded into Phase 1 per spec note — no Phase 8 deferral).
+  // Auto-evict-oldest on overflow. Evicted tabs drop into the corpus's Chat
+  // history (per c96e3b5d "sessions with this corpus"). Chat history is now
+  // keyed by corpusId not gangId.
   const handleAutoEvict = useCallback(
     (tabIds: string[]) => {
-      if (!currentGangId || tabIds.length === 0) return;
-      const tabs = tabsByGang[currentGangId] ?? [];
+      if (tabIds.length === 0) return;
+      const corpusId = orientedCorpus.id;
+      const tabs = tabsByCorpus[corpusId] ?? [];
       const evicted = tabs.filter((t) => tabIds.includes(t.id));
       const remaining = tabs.filter((t) => !tabIds.includes(t.id));
-      setTabsForGang(currentGangId, () => remaining);
+      setTabsForCorpus(corpusId, () => remaining);
       if (activeTabId && tabIds.includes(activeTabId)) {
-        setActiveTabIdForGang(currentGangId, remaining.length > 0 ? remaining[remaining.length - 1].id : null);
+        setActiveTabIdForCorpus(corpusId, remaining.length > 0 ? remaining[remaining.length - 1].id : null);
       }
       if (evicted.length > 0) {
         const entries: ChatHistoryEntry[] = evicted.map((t) => ({
@@ -395,49 +392,35 @@ export default function App() {
           timestamp: new Date(),
           title: fallbackTitle(t),
         }));
-        setChatHistoryByGang((prev) => ({
+        setChatHistoryByCorpus((prev) => ({
           ...prev,
-          [currentGangId]: [...entries, ...(prev[currentGangId] ?? [])],
+          [corpusId]: [...entries, ...(prev[corpusId] ?? [])],
         }));
       }
     },
-    [activeTabId, currentGangId, setActiveTabIdForGang, setTabsForGang, tabsByGang],
+    [activeTabId, orientedCorpus.id, setActiveTabIdForCorpus, setTabsForCorpus, tabsByCorpus],
   );
 
-  // "+ new session" handler (spec Phase 1). Opens a fresh tab on the active
-  // corpus when one is active; otherwise the gang's curator (first corpus in
-  // gang). Walking into a gang and walking into its curator are the same gesture
-  // per c96e3b5d.
+  // "+ new session" opens a fresh tab for the currently active corpus.
   const handleNewSession = () => {
-    if (!orientedGang) return;
-    const targetCorpusId = activeTab?.corpusId ?? orientedGang.corpora[0]?.id;
-    if (!targetCorpusId) return;
-    const corpus = orientedGang.corpora.find((c) => c.id === targetCorpusId);
-    if (!corpus) return;
-    openTabForCorpus(orientedGang, corpus);
+    openTabForCorpus(orientedGang, orientedCorpus);
   };
 
-  // Stubbed forwarding-prompt generator for slice three. Real summary will be
-  // generated by the corpus when corpus-model work lands.
   const requestForwardingPrompt = (_tabId: string): string =>
     "[Forwarding prompt placeholder — real summary will be generated by the corpus]";
 
-  // Continue Session (spec Phase 3). Opens a new tab seeded with the forwarding
-  // prompt as the user's first turn; marks the original tab with continuedInTabId.
   const handleContinueSession = (tabId: string) => {
-    if (!currentGangId || !orientedGang) return;
-    const tab = (tabsByGang[currentGangId] ?? []).find((t) => t.id === tabId);
+    const tab = (tabsByCorpus[orientedCorpus.id] ?? []).find((t) => t.id === tabId);
     if (!tab) return;
-    const corpus = orientedGang.corpora.find((c) => c.id === tab.corpusId);
-    if (!corpus) return;
     const forwardingPrompt = requestForwardingPrompt(tabId);
-    const newTab = openTabForCorpus(orientedGang, corpus, forwardingPrompt);
-    setTabsForGang(currentGangId, (prev) => prev.map((t) => (t.id === tabId ? { ...t, continuedInTabId: newTab.id } : t)));
+    const newTab = openTabForCorpus(orientedGang, orientedCorpus, forwardingPrompt);
+    setTabsForCorpus(orientedCorpus.id, (prev) =>
+      prev.map((t) => (t.id === tabId ? { ...t, continuedInTabId: newTab.id } : t)),
+    );
   };
 
   const handleSendMessage = (tabId: string, content: string) => {
-    if (!currentGangId) return;
-    setTabsForGang(currentGangId, (prev) =>
+    setTabsForCorpus(orientedCorpus.id, (prev) =>
       prev.map((tab) => {
         if (tab.id !== tabId) return tab;
         const userMessage: Message = {
@@ -460,8 +443,7 @@ export default function App() {
   };
 
   const handleResolveQA = (tabId: string, messageId: string, resolution: QABlockResolution) => {
-    if (!currentGangId) return;
-    setTabsForGang(currentGangId, (prev) =>
+    setTabsForCorpus(orientedCorpus.id, (prev) =>
       prev.map((tab) => {
         if (tab.id !== tabId) return tab;
         return {
@@ -473,8 +455,7 @@ export default function App() {
   };
 
   const handleRetryMessage = (tabId: string, messageId: string) => {
-    if (!currentGangId) return;
-    setTabsForGang(currentGangId, (prev) =>
+    setTabsForCorpus(orientedCorpus.id, (prev) =>
       prev.map((tab) => {
         if (tab.id !== tabId) return tab;
         return {
@@ -485,13 +466,9 @@ export default function App() {
     );
   };
 
-  // Stub exposed for demo per spec Phase 7. Triggers a QABlock inline in the
-  // active tab as if the corpus had asked. Real WHEN-to-fire logic is sagacity-lead's.
-  // Reachable via the console as window.triggerQABlock(spec?) and via the
-  // "demo: trigger q&a" quick ask.
   useEffect(() => {
     (window as unknown as { triggerQABlock?: (spec?: Partial<QABlockSpec>) => void }).triggerQABlock = (spec) => {
-      if (!currentGangId || !activeTabId) return;
+      if (!activeTabId) return;
       const message: Message = {
         id: `msg-${Date.now()}-assistant`,
         role: "assistant",
@@ -506,15 +483,14 @@ export default function App() {
         },
         timestamp: new Date(),
       };
-      setTabsForGang(currentGangId, (prev) =>
+      setTabsForCorpus(orientedCorpus.id, (prev) =>
         prev.map((t) => (t.id === activeTabId ? { ...t, messages: [...t.messages, message] } : t)),
       );
     };
-  }, [activeTabId, currentGangId, setTabsForGang]);
+  }, [activeTabId, orientedCorpus.id, setTabsForCorpus]);
 
-  const selectedCorpusId = activeTab?.corpusId;
-  const status = activeTab ? statusFor(activeTab.corpusName) : "";
-  const currentChatHistory = currentGangId ? chatHistoryByGang[currentGangId] ?? [] : [];
+  const status = statusFor(orientedCorpus.name);
+  const currentChatHistory = chatHistoryByCorpus[orientedCorpus.id] ?? [];
 
   return (
     <div className="size-full flex flex-col bg-background">
@@ -538,7 +514,7 @@ export default function App() {
             onGangBack={handleGangBack}
             onCorpusSelect={handleCorpusSelect}
             onScratchPadOpen={() => setScratchPadOpen(true)}
-            selectedCorpusId={selectedCorpusId}
+            selectedCorpusId={orientedCorpus.id}
             isCollapsed={leftRailCollapsed}
             onToggleCollapse={handleToggleLeftRail}
           />
@@ -549,7 +525,7 @@ export default function App() {
         <ResizablePanel defaultSize={57} minSize={40}>
           <CenterPane
             community={community}
-            currentGangId={currentGangId}
+            currentGangId={orientedGang.id}
             tabs={visibleTabs}
             activeTabId={activeTabId}
             onTabClose={handleTabClose}
