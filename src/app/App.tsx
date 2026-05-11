@@ -50,7 +50,10 @@ const seedCommunity: Community = {
         { id: "platform-curator", name: "platform-team-curator", status: "green", role: "curator" },
         { id: "sagacity-lead", name: "sagacity-lead", status: "green" },
         { id: "organic-loop", name: "organic-loop", status: "green" },
-        { id: "sagacity-sre", name: "sagacity-sre", status: "yellow" },
+        // Slice five demo seed: sagacity-sre is read-only for the v1 scaffold.
+        // Real RBAC system-side values land via loop 11af7fc9; this is the UI
+        // affordance only.
+        { id: "sagacity-sre", name: "sagacity-sre", status: "yellow", accessRole: "read-only" },
         { id: "sagacity-pm", name: "sagacity-product-manager", status: "green" },
       ],
     },

@@ -4,6 +4,14 @@ export type LoopStatus = "OBSERVING" | "CLOSED" | "ACTIVE";
 
 export type CorpusRole = "navigator" | "curator";
 
+// Slice five: access role is orthogonal to CorpusStatus (health) and CorpusRole
+// (navigator/curator character). Indicates the active user's access level
+// against this corpus. "full" = read + write; "read-only" = view but composer
+// is hard-disabled. UI seed sets this manually for the v1 scaffold; real
+// values come from the RBAC system when loop 11af7fc9 lands. undefined is
+// treated as "full" at render time.
+export type CorpusAccessRole = "full" | "read-only";
+
 export interface Corpus {
   id: string;
   name: string;
@@ -14,6 +22,7 @@ export interface Corpus {
   // deploys a separate Navigator corpus per gang. UI seed marks both roles so
   // forward-compat is in place without backend Phase B.
   role?: CorpusRole;
+  accessRole?: CorpusAccessRole;
 }
 
 export interface Gang {
