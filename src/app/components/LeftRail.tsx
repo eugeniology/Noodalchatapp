@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   ChevronLeft,
   FileText,
+  Lock,
   PanelLeftClose,
   PanelLeftOpen,
   Search,
@@ -144,7 +145,10 @@ export function LeftRail(props: LeftRailProps) {
                   <div
                     className={`h-2 w-2 rounded-full shrink-0 ${statusDotClass(corpus.status)}`}
                   />
-                  <span className="truncate">{corpus.name}</span>
+                  <span className="truncate flex-1 text-left">{corpus.name}</span>
+                  {corpus.accessRole === "read-only" && (
+                    <Lock className="h-3 w-3 shrink-0 text-muted-foreground" aria-label="read-only" />
+                  )}
                 </Button>
               ))}
         </div>
@@ -257,12 +261,13 @@ function CollapsedRail(props: CollapsedRailProps) {
                 ))
               : props.filteredCorpora.map((corpus) => {
                   const selected = props.selectedCorpusId === corpus.id;
+                  const readOnly = corpus.accessRole === "read-only";
                   return (
                     <Tooltip key={corpus.id}>
                       <TooltipTrigger asChild>
                         <button
                           onClick={() => props.onCorpusSelect(corpus)}
-                          className={`h-8 w-8 flex items-center justify-center rounded border-l-2 ${
+                          className={`h-8 w-8 flex items-center justify-center rounded border-l-2 relative ${
                             selected
                               ? "bg-sidebar-accent border-l-primary"
                               : "border-l-transparent hover:bg-accent"
@@ -272,9 +277,12 @@ function CollapsedRail(props: CollapsedRailProps) {
                           <div
                             className={`h-2.5 w-2.5 rounded-full ${statusDotClass(corpus.status)}`}
                           />
+                          {readOnly && (
+                            <Lock className="absolute bottom-0.5 right-0.5 h-2.5 w-2.5 text-muted-foreground" aria-label="read-only" />
+                          )}
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="right">{corpus.name}</TooltipContent>
+                      <TooltipContent side="right">{corpus.name}{readOnly ? " (read-only)" : ""}</TooltipContent>
                     </Tooltip>
                   );
                 })}

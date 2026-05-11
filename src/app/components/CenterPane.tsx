@@ -91,7 +91,11 @@ export function CenterPane({
     [activeTab],
   );
   const isStreaming = activeTab?.isStreaming ?? false;
-  const composerDisabled = isStreaming || hasUnresolvedQA;
+  // Slice five: read-only access hard-disables the composer end-to-end. Real
+  // RBAC values land via loop 11af7fc9; for now accessRole is set in seed data
+  // (sagacity-sre as the demo). undefined === "full".
+  const isReadOnly = activeCorpus?.accessRole === "read-only";
+  const composerDisabled = isStreaming || hasUnresolvedQA || isReadOnly;
 
   // Cold-open opener subscriber (spec Phase 2 + cross-cutting decision e0d67b77).
   // The subscriber computes welcomeMessageFor(corpusName) on event and calls
@@ -261,6 +265,7 @@ export function CenterPane({
                   size="sm"
                   onClick={() => onContinueSession(activeTab.id)}
                   className="rounded-full"
+                  disabled={isReadOnly}
                 >
                   Continue Session
                 </Button>
@@ -300,7 +305,13 @@ export function CenterPane({
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    placeholder={hasUnresolvedQA ? "waiting on your answer" : "Message..."}
+                    placeholder={
+                      isReadOnly
+                        ? "read-only access — view only"
+                        : hasUnresolvedQA
+                        ? "waiting on your answer"
+                        : "Message..."
+                    }
                     className="min-h-[60px] resize-none"
                     disabled={composerDisabled}
                   />
@@ -319,7 +330,9 @@ export function CenterPane({
                 )}
               </div>
               <div className="text-xs text-muted-foreground text-center">
-                {hasUnresolvedQA
+                {isReadOnly
+                  ? "read-only access — view only"
+                  : hasUnresolvedQA
                   ? "waiting on your answer"
                   : "Cmd+Enter to send, Enter for new line"}
               </div>
