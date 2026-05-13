@@ -8,15 +8,17 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import type { Community } from "../types";
+import type { AdminPage } from "./AdminPages";
 
 interface TopBarProps {
   community: Community;
   onCommunityChange?: (communityId: string) => void;
   isDark: boolean;
   onToggleTheme: () => void;
+  onOpenAdmin: (page: AdminPage) => void;
 }
 
-export function TopBar({ community, isDark, onToggleTheme }: TopBarProps) {
+export function TopBar({ community, isDark, onToggleTheme, onOpenAdmin }: TopBarProps) {
   return (
     <div className="h-12 border-b border-border bg-background flex items-center px-4 justify-between">
       <DropdownMenu>
@@ -35,11 +37,29 @@ export function TopBar({ community, isDark, onToggleTheme }: TopBarProps) {
         <Button variant="ghost" size="icon" onClick={onToggleTheme}>
           {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
-        <Avatar className="h-8 w-8">
-          <AvatarFallback className="bg-primary text-primary-foreground">
-            U
-          </AvatarFallback>
-        </Avatar>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              aria-label="Open account menu"
+            >
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-primary text-primary-foreground">
+                  U
+                </AvatarFallback>
+              </Avatar>
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onOpenAdmin("profile")}>
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onOpenAdmin("models")}>
+              Models
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );

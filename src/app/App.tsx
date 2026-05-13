@@ -6,6 +6,7 @@ import { LeftRail } from "./components/LeftRail";
 import { CenterPane } from "./components/CenterPane";
 import { RightPane } from "./components/RightPane";
 import { ScratchPad } from "./components/ScratchPad";
+import { ModelsPage, ProfilePage, type AdminPage } from "./components/AdminPages";
 import type {
   Community,
   Gang,
@@ -213,6 +214,19 @@ export default function App() {
   const [activeTabIdByCorpus, setActiveTabIdByCorpus] = useState<Record<string, string | null>>({});
   const [chatHistoryByCorpus, setChatHistoryByCorpus] = useState<Record<string, ChatHistoryEntry[]>>({});
   const [scratchPadOpen, setScratchPadOpen] = useState(false);
+  // Admin pages takeover (Profile / Models). Opened via TopBar avatar dropdown.
+  const [activeAdminPage, setActiveAdminPage] = useState<AdminPage | null>(null);
+  const handleOpenAdmin = (page: AdminPage) => {
+    // Close scratch pad if open so the takeover swap is clean.
+    setScratchPadOpen(false);
+    setActiveAdminPage(page);
+  };
+  // ScratchPad → Models bridge: when no chat token is set, ScratchPad surfaces
+  // a button that opens the Models settings.
+  const handleOpenModelsFromScratchPad = () => {
+    setScratchPadOpen(false);
+    setActiveAdminPage("models");
+  };
 
   const leftPanelRef = useRef<ImperativePanelHandle>(null);
   const [leftRailCollapsed, setLeftRailCollapsed] = useState(false);
@@ -497,7 +511,7 @@ export default function App() {
 
   return (
     <div className="size-full flex flex-col bg-background">
-      <TopBar community={community} isDark={isDark} onToggleTheme={toggleTheme} />
+      <TopBar community={community} isDark={isDark} onToggleTheme={toggleTheme} onOpenAdmin={handleOpenAdmin} />
 
       <ResizablePanelGroup direction="horizontal" className="flex-1">
         <ResizablePanel
@@ -569,7 +583,14 @@ export default function App() {
         </ResizablePanel>
       </ResizablePanelGroup>
 
-      {scratchPadOpen && <ScratchPad onClose={() => setScratchPadOpen(false)} />}
+      {scratchPadOpen && (
+        <ScratchPad
+          onClose={() => setScratchPadOpen(false)}
+          onOpenModelsSettings={handleOpenModelsFromScratchPad}
+        />
+      )}
+      {activeAdminPage === "profile" && <ProfilePage onClose={() => setActiveAdminPage(null)} />}
+      {activeAdminPage === "models" && <ModelsPage onClose={() => setActiveAdminPage(null)} />}
     </div>
   );
 }

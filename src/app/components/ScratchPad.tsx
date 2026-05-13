@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Anthropic from "@anthropic-ai/sdk";
-import { X, Send } from "lucide-react";
+import { X, Send, Settings2 } from "lucide-react";
 import { Button } from "./ui/button";
-import { Input } from "./ui/input";
 import { Textarea } from "./ui/textarea";
 import { ScrollArea } from "./ui/scroll-area";
 import {
@@ -13,6 +12,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { ErrorFooter, MessageComponent, StopButton } from "./chat-primitives";
+import { clearChatToken, getChatToken, NOODAL_TOKENS_CHANGED, notifyTokensChanged } from "../lib/tokens";
 import type { Message, ToolUse } from "../types";
 
 // Slice 6 — LLM passthrough scratch pad.
@@ -58,11 +58,16 @@ function modelConfigFor(model: ModelId): Record<string, unknown> {
 
 interface ScratchPadProps {
   onClose: () => void;
+  // Bridge to App: when no chat token is set, ScratchPad surfaces a button
+  // that opens the Models admin page so the user can set one.
+  onOpenModelsSettings: () => void;
 }
 
-export function ScratchPad({ onClose }: ScratchPadProps) {
-  const [apiKey, setApiKey] = useState("");
-  const [keyInput, setKeyInput] = useState("");
+export function ScratchPad({ onClose, onOpenModelsSettings }: ScratchPadProps) {
+  // Chat token now persists via localStorage (Models admin page). RETRACTS the
+  // "session-only" clause of locked decision d1678106 per founder direction
+  // 2026-05-12. See src/app/lib/tokens.ts for the security tradeoff note.
+  const [apiKey, setApiKey] = useState<string>(() => getChatToken());
   const [model, setModel] = useState<ModelId>("claude-opus-4-7");
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -70,7 +75,7 @@ export function ScratchPad({ onClose }: ScratchPadProps) {
   const [error, setError] = useState<string | null>(null);
   const streamControllerRef = useRef<AbortController | null>(null);
 
-  // Esc-to-close was punted from slice 1; lands here.
+  // Esc-to-close (punted from slice 1; lands here).
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -79,20 +84,26 @@ export function ScratchPad({ onClose }: ScratchPadProps) {
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
-  // Client is recreated whenever apiKey changes; never persisted anywhere.
+  // Sync apiKey with localStorage if the Models page (or another tab) changes
+  // it while ScratchPad is open. Native "storage" event covers cross-tab; the
+  // custom noodal:tokens-changed event covers same-tab cross-mount.
+  useEffect(() => {
+    const reread = () => setApiKey(getChatToken());
+    window.addEventListener("storage", reread);
+    window.addEventListener(NOODAL_TOKENS_CHANGED, reread);
+    return () => {
+      window.removeEventListener("storage", reread);
+      window.removeEventListener(NOODAL_TOKENS_CHANGED, reread);
+    };
+  }, []);
+
+  // Client is recreated whenever apiKey changes; key never leaves the browser
+  // beyond direct calls to api.anthropic.com.
   const client = useMemo(
     () =>
       apiKey ? new Anthropic({ apiKey, dangerouslyAllowBrowser: true }) : null,
     [apiKey],
   );
-
-  const handleConnect = () => {
-    const trimmed = keyInput.trim();
-    if (!trimmed) return;
-    setApiKey(trimmed);
-    setKeyInput("");
-    setError(null);
-  };
 
   const handleStop = () => {
     streamControllerRef.current?.abort();
@@ -214,8 +225,12 @@ export function ScratchPad({ onClose }: ScratchPadProps) {
     } catch (e) {
       // Typed exceptions per claude-api skill — never string-match.
       if (e instanceof Anthropic.AuthenticationError) {
+        // Clear the bad token from persistent storage too, not just state,
+        // so a reload doesn't restore the rejected key.
+        clearChatToken();
+        notifyTokensChanged();
         setApiKey("");
-        setError("That key was rejected. Please re-enter.");
+        setError("That key was rejected. Open Models settings to set a new one.");
       } else if (e instanceof Anthropic.RateLimitError) {
         setError("Rate limited. Please retry shortly.");
       } else if (e instanceof Anthropic.APIConnectionError) {
@@ -282,34 +297,20 @@ export function ScratchPad({ onClose }: ScratchPadProps) {
 
       {!apiKey ? (
         <div className="flex-1 flex items-center justify-center px-6">
-          <div className="max-w-md w-full space-y-4">
-            <div className="space-y-2 text-center">
-              <h3 className="text-lg font-medium">Bring your own Anthropic key</h3>
+          <div className="max-w-md w-full space-y-4 text-center">
+            <div className="space-y-2">
+              <h3 className="text-lg font-medium">No chat token set</h3>
               <p className="text-sm text-muted-foreground">
-                Your key stays in browser memory only — never persisted, never
-                sent anywhere except <code>api.anthropic.com</code> directly from
-                this page. Closing the tab clears it. Session-only per locked
-                decision <code>d1678106</code>.
+                The scratch pad needs an Anthropic API key. Set one in Models
+                settings and it'll persist across reloads.
               </p>
             </div>
-            <div className="flex gap-2">
-              <Input
-                type="password"
-                value={keyInput}
-                onChange={(e) => setKeyInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleConnect();
-                }}
-                placeholder="sk-ant-..."
-                className="flex-1"
-                autoFocus
-              />
-              <Button onClick={handleConnect} disabled={!keyInput.trim()}>
-                Connect
-              </Button>
-            </div>
+            <Button onClick={onOpenModelsSettings} className="gap-2">
+              <Settings2 className="h-4 w-4" />
+              Open Models settings
+            </Button>
             {error && (
-              <div className="text-xs text-destructive text-center">{error}</div>
+              <div className="text-xs text-destructive">{error}</div>
             )}
           </div>
         </div>
