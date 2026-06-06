@@ -7,6 +7,7 @@ import { CenterPane } from "./components/CenterPane";
 import { RightPane } from "./components/RightPane";
 import { ScratchPad } from "./components/ScratchPad";
 import { ModelsPage, ProfilePage, type AdminPage } from "./components/AdminPages";
+import { MembersAccessPage } from "./components/MembersAccessPage";
 import type {
   Community,
   Gang,
@@ -591,6 +592,16 @@ export default function App() {
       )}
       {activeAdminPage === "profile" && <ProfilePage onClose={() => setActiveAdminPage(null)} />}
       {activeAdminPage === "models" && <ModelsPage onClose={() => setActiveAdminPage(null)} />}
+      {activeAdminPage === "access" && (
+        <MembersAccessPage
+          communityId={community.id}
+          gangId={orientedGang.id}
+          gangName={orientedGang.name}
+          corpora={orientedGang.corpora}
+          focusCorpusId={orientedCorpus?.id}
+          onClose={() => setActiveAdminPage(null)}
+        />
+      )}
     </div>
   );
 }
