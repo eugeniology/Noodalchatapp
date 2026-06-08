@@ -17,7 +17,7 @@ import {
 // dropdown in TopBar. Same shell pattern as ScratchPad (fixed inset-0, 48px
 // header, Esc-to-close).
 
-export type AdminPage = "profile" | "models";
+export type AdminPage = "profile" | "models" | "access";
 
 interface PageProps {
   onClose: () => void;
@@ -33,7 +33,7 @@ function useEscToClose(onClose: () => void) {
   }, [onClose]);
 }
 
-function AdminShell({
+export function AdminShell({
   title,
   children,
   onClose,

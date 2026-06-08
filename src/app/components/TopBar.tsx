@@ -58,6 +58,9 @@ export function TopBar({ community, isDark, onToggleTheme, onOpenAdmin }: TopBar
             <DropdownMenuItem onClick={() => onOpenAdmin("models")}>
               Models
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onOpenAdmin("access")}>
+              Members & Access
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
