@@ -5,9 +5,12 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import type { Community } from "../types";
+import type { UserInfo } from "../lib/membraneSession";
 import type { AdminPage } from "./AdminPages";
 
 interface TopBarProps {
@@ -16,9 +19,34 @@ interface TopBarProps {
   isDark: boolean;
   onToggleTheme: () => void;
   onOpenAdmin: (page: AdminPage) => void;
+  // Identity from /auth/me when a Cognito session is active; null on the dev
+  // X-Scope path (no login). Drives the account-menu identity + sign-in/out.
+  me: UserInfo | null;
+  onSignIn: () => void;
+  onLogout: () => void;
 }
 
-export function TopBar({ community, isDark, onToggleTheme, onOpenAdmin }: TopBarProps) {
+// Short label for the signed-in identity. /auth/me returns user_id (the Cognito
+// sub) and org/team; email isn't carried on the scope, so the sub is the stable
+// display until friendlier identity lands (PM 53f7abb3 §7 fast-follow).
+function identityLabel(me: UserInfo): string {
+  return me.email || me.user_id;
+}
+
+function avatarLetter(me: UserInfo | null): string {
+  const s = me ? identityLabel(me) : "";
+  return s ? s.charAt(0).toUpperCase() : "U";
+}
+
+export function TopBar({
+  community,
+  isDark,
+  onToggleTheme,
+  onOpenAdmin,
+  me,
+  onSignIn,
+  onLogout,
+}: TopBarProps) {
   return (
     <div className="h-12 border-b border-border bg-background flex items-center px-4 justify-between">
       <DropdownMenu>
@@ -46,12 +74,22 @@ export function TopBar({ community, isDark, onToggleTheme, onOpenAdmin }: TopBar
             >
               <Avatar className="h-8 w-8">
                 <AvatarFallback className="bg-primary text-primary-foreground">
-                  U
+                  {avatarLetter(me)}
                 </AvatarFallback>
               </Avatar>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <DropdownMenuLabel className="font-normal">
+              {me ? (
+                <span className="block truncate text-xs text-muted-foreground" title={identityLabel(me)}>
+                  {identityLabel(me)}
+                </span>
+              ) : (
+                <span className="block text-xs text-muted-foreground">Not signed in (dev scope)</span>
+              )}
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => onOpenAdmin("profile")}>
               Profile
             </DropdownMenuItem>
@@ -61,6 +99,12 @@ export function TopBar({ community, isDark, onToggleTheme, onOpenAdmin }: TopBar
             <DropdownMenuItem onClick={() => onOpenAdmin("access")}>
               Members & Access
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            {me ? (
+              <DropdownMenuItem onClick={onLogout}>Log out</DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem onClick={onSignIn}>Sign in</DropdownMenuItem>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

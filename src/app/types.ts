@@ -33,6 +33,11 @@ export interface Gang {
   // Slice four: pointer to this gang's designated curator corpus. Walking into a
   // gang and walking into its curator are the same gesture (c96e3b5d).
   curatorCorpusId?: string;
+  // The community-admin gang IS the community level (c96e3b5d): the rail renders
+  // the gang list with no dock-row and filters this gang out of it. With live
+  // data the gang id is a UUID, so this is matched by flag, not by id string
+  // (loop 33c9f394 / spec bf4d7c86 C).
+  isCommunityHome?: boolean;
 }
 
 export interface Community {
