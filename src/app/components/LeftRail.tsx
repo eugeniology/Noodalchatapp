@@ -39,10 +39,10 @@ export function LeftRail(props: LeftRailProps) {
   // community-admin gang is filtered out of that list (it's the implicit
   // home, not a clickable gang). Any other orientedGang renders the
   // gang-level rail (dock-row + corpus list).
-  const isCommunityLevel = props.orientedGang?.id === "community-admin";
+  const isCommunityLevel = !!props.orientedGang?.isCommunityHome;
 
   const filteredGangs = props.gangs
-    .filter((g) => g.id !== "community-admin")
+    .filter((g) => !g.isCommunityHome)
     .filter((g) => g.name.toLowerCase().includes(filter.toLowerCase()));
   const filteredCorpora =
     props.orientedGang && !isCommunityLevel
@@ -178,7 +178,7 @@ interface CollapsedRailProps extends LeftRailProps {
 }
 
 function CollapsedRail(props: CollapsedRailProps) {
-  const isCommunityLevel = props.orientedGang?.id === "community-admin";
+  const isCommunityLevel = !!props.orientedGang?.isCommunityHome;
   return (
     <TooltipProvider delayDuration={200}>
       <div className="flex flex-col h-full bg-sidebar border-r border-sidebar-border items-center py-2 gap-1">

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ImperativePanelHandle } from "react-resizable-panels";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "./components/ui/resizable";
 import { TopBar } from "./components/TopBar";
@@ -8,6 +8,18 @@ import { RightPane } from "./components/RightPane";
 import { ScratchPad } from "./components/ScratchPad";
 import { ModelsPage, ProfilePage, type AdminPage } from "./components/AdminPages";
 import { MembersAccessPage } from "./components/MembersAccessPage";
+import { LoginScreen } from "./components/LoginScreen";
+import { Button } from "./components/ui/button";
+import { membraneApi } from "./lib/membraneApi";
+import { loadCommunity } from "./lib/communityData";
+import {
+  clearMembraneSession,
+  hasMembraneSession,
+  logout,
+  subscribeUnauthorized,
+  validateSession,
+  type UserInfo,
+} from "./lib/membraneSession";
 import type {
   Community,
   Gang,
@@ -16,78 +28,16 @@ import type {
   Message,
   ChatHistoryEntry,
   Loop,
+  LoopStatus,
   QuickAsk,
   QABlockSpec,
   QABlockResolution,
 } from "./types";
 
-// Rail data is currently seeded in-memory. When this becomes a real fetch (with RBAC),
-// the visibility-not-error rule from b8dcfb02 applies: filter rail data at fetch time
-// based on the user's role/permissions, never on click. Inaccessible corpora simply do
-// not appear; clicks never produce "you can't access this" errors.
-const seedCommunity: Community = {
-  id: "sagacity",
-  name: "Sagacity",
-  gangs: [
-    {
-      // c96e3b5d: "Community level: community navigator (a corpus inside
-      // community-admin gang)." community-admin is the home of the community
-      // navigator. In the UI, community-admin orientation IS the community
-      // level — the LeftRail filters this gang out of the visible gang list
-      // and renders no dock-row when oriented on it.
-      id: "community-admin",
-      name: "community-admin",
-      status: "green",
-      curatorCorpusId: "community-navigator",
-      corpora: [
-        { id: "community-navigator", name: "community-navigator", status: "green", role: "navigator" },
-      ],
-    },
-    {
-      id: "platform-team",
-      name: "corpora platform team",
-      status: "yellow",
-      curatorCorpusId: "platform-curator",
-      corpora: [
-        { id: "platform-curator", name: "platform-team-curator", status: "green", role: "curator" },
-        { id: "sagacity-lead", name: "sagacity-lead", status: "green" },
-        { id: "organic-loop", name: "organic-loop", status: "green" },
-        // Slice five demo seed: sagacity-sre is read-only for the v1 scaffold.
-        // Real RBAC system-side values land via loop 11af7fc9; this is the UI
-        // affordance only.
-        { id: "sagacity-sre", name: "sagacity-sre", status: "yellow", accessRole: "read-only" },
-        { id: "sagacity-pm", name: "sagacity-product-manager", status: "green" },
-      ],
-    },
-    {
-      id: "leadership",
-      name: "corpora leadership",
-      status: "green",
-      curatorCorpusId: "leadership-curator",
-      corpora: [
-        { id: "leadership-curator", name: "leadership-curator", status: "green", role: "curator" },
-      ],
-    },
-    {
-      id: "marketing",
-      name: "noodal-marketing",
-      status: "green",
-      curatorCorpusId: "marketing-curator",
-      corpora: [
-        { id: "marketing-curator", name: "marketing-curator", status: "green", role: "curator" },
-      ],
-    },
-  ],
-};
-
-const seedLoops: Loop[] = [
-  { id: "l1", name: "Platform health monitoring", status: "OBSERVING" },
-  { id: "l2", name: "Security audit sweep", status: "OBSERVING" },
-  { id: "l3", name: "Documentation sync", status: "OBSERVING" },
-  { id: "l4", name: "Q1 OKR tracking", status: "CLOSED" },
-];
-
-const seedQuickAsks: QuickAsk[] = [
+// Quick-asks are UI prompt presets, not corpus data — there is no membrane
+// quick-asks endpoint, so these stay app-level (unlike the rail/loops, which are
+// now live reads). The "demo:*" presets exercise the chat-render primitives.
+const QUICK_ASKS: QuickAsk[] = [
   { id: "qa1", text: "self-summary" },
   { id: "qa2", text: "what's blocked" },
   { id: "qa3", text: "demo: tool use" },
@@ -96,30 +46,48 @@ const seedQuickAsks: QuickAsk[] = [
 ];
 
 function statusFor(name: string): string {
-  return `${name} — imprint v12, 0 pending tasks, 15 deltas absorbed in last metabolism pass.`;
+  return `${name} — live corpus. Status detail wires up alongside the imprint read route.`;
+}
+
+// The community-home gang (c96e3b5d): its curator IS the community navigator and
+// orienting on it is the community level. Picked by the isCommunityHome flag the
+// live data layer sets, falling back to the first gang.
+function pickHomeGang(community: Community): Gang {
+  return community.gangs.find((g) => g.isCommunityHome) ?? community.gangs[0];
+}
+
+function pickNavigator(community: Community): Corpus {
+  const gang = pickHomeGang(community);
+  return gang.corpora.find((c) => c.id === gang.curatorCorpusId) ?? gang.corpora[0];
+}
+
+// Membrane loop status (enum value, e.g. "observing"/"closed"/"acting") → the
+// three-value UI LoopStatus the right-pane badge renders.
+function normalizeLoopStatus(s: string): LoopStatus {
+  const v = (s.split(".").pop() ?? s).toUpperCase();
+  if (v.startsWith("CLOS")) return "CLOSED";
+  if (v.startsWith("ACT")) return "ACTIVE";
+  return "OBSERVING";
 }
 
 // Welcome / cold-open content. Branched by corpus.role per e3922a4d Phase A
 // model: navigator-character (engagement, cross-scope orientation), curator-
 // character (administrator, gang-internal), or standard.
 export function welcomeMessageFor(corpus: Corpus, gang: Gang): Message {
-  const askLines = seedQuickAsks.slice(0, 3).map((q) => `• ${q.text}`).join("\n");
+  const askLines = QUICK_ASKS.slice(0, 3).map((q) => `• ${q.text}`).join("\n");
   let opener: string;
   if (corpus.role === "navigator") {
     opener =
-      `${corpus.name} — I help you find your way across ${gang.id === "community-admin" ? "this community" : `the ${gang.name} gang`}.\n` +
+      `${corpus.name} — I help you find your way across ${gang.isCommunityHome ? "this community" : `the ${gang.name} gang`}.\n` +
       `Ask me what's active, who owns what, where a topic lives.\n\n` +
-      `Most asked of me lately:\n${askLines}\n\n` +
-      `Try: [[corpus:platform-team/platform-curator|platform team curator]] · [[corpus:platform-team/sagacity-lead|sagacity-lead]] · [[loop:ea89973c|slice-three loop]] · [[artifact:820310ef|slice-three spec]]`;
+      `Most asked of me lately:\n${askLines}`;
   } else if (corpus.role === "curator") {
     opener =
       `${statusFor(corpus.name)}\n\nI administer the ${gang.name} gang. Ask me about its corpora, its loops, what's blocked, recent decisions.\n\n` +
-      `Most asked of me lately:\n${askLines}\n\n` +
-      `Related: [[corpus:${gang.id}/${corpus.id}|${corpus.name}]]`;
+      `Most asked of me lately:\n${askLines}`;
   } else {
     opener =
-      `${statusFor(corpus.name)}\n\nMost asked of me lately:\n${askLines}\n\n` +
-      `Related: [[corpus:platform-team/sagacity-lead|sagacity-lead]] · [[corpus:platform-team/organic-loop|organic-loop]] · [[loop:ea89973c|slice-three loop]] · [[artifact:820310ef|spec]]`;
+      `${statusFor(corpus.name)}\n\nMost asked of me lately:\n${askLines}`;
   }
   return {
     id: `cold-${corpus.id}-${Date.now()}`,
@@ -186,12 +154,18 @@ function makeAssistantReply(content: string): Message {
   };
 }
 
-const COMMUNITY_ADMIN_GANG = seedCommunity.gangs.find((g) => g.id === "community-admin")!;
-const COMMUNITY_NAVIGATOR = COMMUNITY_ADMIN_GANG.corpora[0];
+interface WorkspaceProps {
+  community: Community;
+  me: UserInfo | null;
+  onSignIn: () => void;
+  onLogout: () => void;
+}
 
-export default function App() {
+// The loaded workspace. Receives a non-null community (the App gate handles
+// auth + data loading + empty/error states) and is keyed by community.id so the
+// oriented-state initializers re-run if the active community changes.
+function Workspace({ community, me, onSignIn, onLogout }: WorkspaceProps) {
   const [isDark, setIsDark] = useState(false);
-  const [community] = useState<Community>(seedCommunity);
 
   // Three-scope takeover (c96e3b5d):
   //   • Community level → orientedGang === community-admin (LeftRail renders
@@ -204,8 +178,36 @@ export default function App() {
   // orientedGang is never null — community-admin IS the community level.
   // orientedCorpus is always set — community-navigator at boot, gang.curator
   // on gang orient, clicked corpus on corpus orient.
-  const [orientedGang, setOrientedGang] = useState<Gang>(COMMUNITY_ADMIN_GANG);
-  const [orientedCorpus, setOrientedCorpus] = useState<Corpus>(COMMUNITY_NAVIGATOR);
+  const [orientedGang, setOrientedGang] = useState<Gang>(() => pickHomeGang(community));
+  const [orientedCorpus, setOrientedCorpus] = useState<Corpus>(() => pickNavigator(community));
+
+  // Per-oriented-corpus loops for the right pane — replaces the old seedLoops.
+  // Fetched live from the membrane; degrades to an empty list on error.
+  const [loops, setLoops] = useState<Loop[]>([]);
+  useEffect(() => {
+    let active = true;
+    setLoops([]);
+    membraneApi
+      .listLoops(orientedCorpus.id)
+      .then((rows) => {
+        if (!active) return;
+        setLoops(
+          rows.map((r) => ({
+            id: r.loop_id,
+            name: r.title || r.workflow_id || "untitled loop",
+            status: normalizeLoopStatus(r.status),
+          })),
+        );
+      })
+      .catch(() => {
+        if (active) setLoops([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [orientedCorpus.id]);
+
+  const navigatorId = useMemo(() => pickNavigator(community).id, [community]);
 
   // Per-corpus tab state — retracts c698e710's per-gang lock. Each corpus has
   // its own tab strip; switching the active corpus swaps the visible strip.
@@ -300,7 +302,7 @@ export default function App() {
     if (existing.length === 0) {
       // Fresh corpus orient → open a tab. Guard the boot case with didBoot to
       // survive React 18 StrictMode's effect double-invoke.
-      if (!didBoot.current && orientedCorpus.id === COMMUNITY_NAVIGATOR.id) {
+      if (!didBoot.current && orientedCorpus.id === navigatorId) {
         didBoot.current = true;
       }
       openTabForCorpus(orientedGang, orientedCorpus);
@@ -325,8 +327,8 @@ export default function App() {
   // Back-arrow returns to community level: community-admin orientation,
   // community-navigator as active corpus.
   const handleGangBack = () => {
-    setOrientedGang(COMMUNITY_ADMIN_GANG);
-    setOrientedCorpus(COMMUNITY_NAVIGATOR);
+    setOrientedGang(pickHomeGang(community));
+    setOrientedCorpus(pickNavigator(community));
   };
 
   const handleCorpusSelect = (corpus: Corpus) => {
@@ -512,7 +514,15 @@ export default function App() {
 
   return (
     <div className="size-full flex flex-col bg-background">
-      <TopBar community={community} isDark={isDark} onToggleTheme={toggleTheme} onOpenAdmin={handleOpenAdmin} />
+      <TopBar
+        community={community}
+        isDark={isDark}
+        onToggleTheme={toggleTheme}
+        onOpenAdmin={handleOpenAdmin}
+        me={me}
+        onSignIn={onSignIn}
+        onLogout={onLogout}
+      />
 
       <ResizablePanelGroup direction="horizontal" className="flex-1">
         <ResizablePanel
@@ -575,8 +585,8 @@ export default function App() {
           <RightPane
             status={status}
             chatHistory={currentChatHistory}
-            loops={seedLoops}
-            quickAsks={seedQuickAsks}
+            loops={loops}
+            quickAsks={QUICK_ASKS}
             onQuickAskClick={handleQuickAskClick}
             panelCollapsed={rightPaneCollapsed}
             onControlPanel={controlRightPanel}
@@ -603,5 +613,164 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+function CenteredShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="size-full flex items-center justify-center bg-background p-6">
+      <div className="max-w-sm w-full text-center space-y-4">{children}</div>
+    </div>
+  );
+}
+
+// Vite sets import.meta.env.DEV true under `vite dev` (the laptop loopback) and
+// false in a production build. It is the signal for "login is optional here":
+// in dev the X-Scope fallback serves with no login (spec AC-5); in a hosted
+// build a Cognito login is required (spec AC-1).
+const IS_DEV: boolean =
+  (import.meta as { env?: { DEV?: boolean } }).env?.DEV ?? false;
+
+// App gate: resolves auth + loads the live rail data, then renders the Workspace.
+// Handles the login screen, loading, and empty/error shells so the Workspace
+// itself always receives a non-null, non-empty community.
+export default function App() {
+  const [me, setMe] = useState<UserInfo | null>(null);
+  const [community, setCommunity] = useState<Community | null>(null);
+  const [phase, setPhase] = useState<"loading" | "login" | "ready">("loading");
+  const [dataError, setDataError] = useState<string | null>(null);
+  const [showLogin, setShowLogin] = useState(false);
+
+  const loadData = useCallback(async () => {
+    setDataError(null);
+    try {
+      setCommunity(await loadCommunity());
+    } catch (e) {
+      setCommunity(null);
+      setDataError((e as Error).message || "Could not load workspace.");
+    }
+  }, []);
+
+  const boot = useCallback(async () => {
+    setPhase("loading");
+    const identity = hasMembraneSession() ? await validateSession() : null;
+    // Stored token present but invalid + unrefreshable → drop it.
+    if (hasMembraneSession() && !identity) clearMembraneSession();
+    setMe(identity);
+    if (!identity && !IS_DEV) {
+      setPhase("login");
+      return;
+    }
+    await loadData();
+    setPhase("ready");
+  }, [loadData]);
+
+  useEffect(() => {
+    void boot();
+  }, [boot]);
+
+  // Mid-session expiry: membraneApi cleared the token and emitted this. Route to
+  // login in prod; in dev fall back to the X-Scope path by re-booting.
+  useEffect(() => {
+    return subscribeUnauthorized(() => {
+      setMe(null);
+      setShowLogin(false);
+      if (IS_DEV) {
+        void boot();
+      } else {
+        setCommunity(null);
+        setPhase("login");
+      }
+    });
+  }, [boot]);
+
+  const handleAuthed = useCallback(
+    (identity: UserInfo) => {
+      setMe(identity);
+      setShowLogin(false);
+      setPhase("loading");
+      void loadData().then(() => setPhase("ready"));
+    },
+    [loadData],
+  );
+
+  const handleLogout = useCallback(() => {
+    logout();
+    setMe(null);
+    setShowLogin(false);
+    if (IS_DEV) {
+      // Drop back to the dev X-Scope path and reload unfiltered.
+      setPhase("loading");
+      void loadData().then(() => setPhase("ready"));
+    } else {
+      setCommunity(null);
+      setPhase("login");
+    }
+  }, [loadData]);
+
+  // Login: forced (prod, no session) is non-dismissable; the explicit overlay
+  // (dev "Sign in", or switching account) can be cancelled back to the app.
+  if (phase === "login" || showLogin) {
+    const forced = phase === "login";
+    return (
+      <LoginScreen
+        onAuthed={handleAuthed}
+        onCancel={forced ? undefined : () => setShowLogin(false)}
+      />
+    );
+  }
+
+  if (phase === "loading") {
+    return (
+      <CenteredShell>
+        <p className="text-sm text-muted-foreground">Loading your workspace…</p>
+      </CenteredShell>
+    );
+  }
+
+  if (!community) {
+    return (
+      <CenteredShell>
+        <p className="text-sm text-destructive">{dataError ?? "Could not load workspace."}</p>
+        <div className="flex items-center justify-center gap-2">
+          <Button onClick={() => void boot()}>Retry</Button>
+          <Button variant="ghost" onClick={() => setShowLogin(true)}>
+            Sign in
+          </Button>
+        </div>
+      </CenteredShell>
+    );
+  }
+
+  if (community.gangs.length === 0) {
+    return (
+      <CenteredShell>
+        <p className="text-sm text-muted-foreground">
+          No accessible corpora yet. Ask an owner or admin to grant you access.
+        </p>
+        <div className="flex items-center justify-center gap-2">
+          <Button onClick={() => void boot()}>Refresh</Button>
+          {me ? (
+            <Button variant="ghost" onClick={handleLogout}>
+              Log out
+            </Button>
+          ) : (
+            <Button variant="ghost" onClick={() => setShowLogin(true)}>
+              Sign in
+            </Button>
+          )}
+        </div>
+      </CenteredShell>
+    );
+  }
+
+  return (
+    <Workspace
+      key={community.id}
+      community={community}
+      me={me}
+      onSignIn={() => setShowLogin(true)}
+      onLogout={handleLogout}
+    />
   );
 }

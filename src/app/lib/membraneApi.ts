@@ -1,17 +1,29 @@
-// Membrane REST client — RBAC grant-management surface (loop e5183698, Phase 4b).
+// Membrane REST client — RBAC grant-management + live read surfaces.
 //
-// This is the FIRST real membrane API client in the SPA (until now the app is
-// seeded in-memory). It targets the Phase-4b grant routes in
-// membrane/src/membrane/routes/grants.py, the WRITE side of team-tier RBAC
-// (ADR b1384ebc D4 — Owner/Admin only; every mutation audited server-side).
+// Started as the RBAC grant client (loop e5183698, Phase 4b — the WRITE side of
+// team-tier RBAC, ADR b1384ebc D4, Owner/Admin only, audited server-side).
+// connect-the-app v0 (loop 33c9f394 / spec bf4d7c86 C) extended it with the live
+// READ surfaces (communities / gangs / corpora / loops) that replace the SPA's
+// in-memory seeds, plus token-aware auth wiring (piece B).
 //
-// SCAFFOLD STATUS: the app has no login flow yet, so auth wiring is provisional.
-// In production the membrane requires a Cognito JWT (sub + custom:org_id +
-// custom:team_id); in dev mode it accepts X-Scope-* headers. This client sends a
-// bearer token when one is configured, otherwise dev scope headers — matching
-// how a laptop SPA talks to a local membrane. Real auth lands when the SPA's
-// login flow is wired. All authority checks happen SERVER-SIDE regardless; the
-// client cannot grant itself anything.
+// AUTH: the SPA login flow (membraneSession.ts) stores a Cognito ID token at
+// localStorage["noodal.membraneToken"]; authHeaders() sends it as the bearer.
+// With no token, it falls back to dev X-Scope-* headers (MEMBRANE_DEV_MODE) so
+// the laptop loopback path keeps working with no login. On a 401 with a token,
+// call() refreshes once and retries; if that fails it clears the session and
+// emits the unauthorized signal (the app routes to login without leaking
+// existence). All authority checks happen SERVER-SIDE; the client cannot grant
+// itself anything.
+
+import { BASE } from "./membraneBase";
+import {
+  clearMembraneSession,
+  emitUnauthorized,
+  getMembraneToken,
+  refreshSession,
+} from "./membraneSession";
+
+export { BASE };
 
 export type MemberTier = "owner" | "admin" | null;
 export type GrantLevel = "observer" | "contributor";
@@ -96,19 +108,42 @@ export interface AccessHistoryEvent {
   timestamp: string | null;
 }
 
-const BASE =
-  (import.meta as { env?: Record<string, string> }).env?.VITE_MEMBRANE_BASE ??
-  "https://dev.sagacityapps.com";
+// --- Live read surfaces (loop 33c9f394 / spec bf4d7c86 C) ---
+// Minimal shapes — only the fields the rail/right-pane consume. Extra fields the
+// membrane returns are ignored, so a newer membrane stays compatible.
 
-// Provisional auth: a membrane session bearer token if the host app stashed one.
+export interface CommunityDTO {
+  id: string;
+  name: string;
+}
+
+export interface GangDTO {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface CorpusDTO {
+  organism_id: string;
+  name: string;
+  status?: string;
+  tags?: Record<string, string>;
+  aliases?: string[];
+}
+
+export interface LoopDTO {
+  loop_id: string;
+  workflow_id: string;
+  title: string;
+  status: string;
+}
+
+// Bearer token if the SPA has a Cognito session; otherwise the dev X-Scope
+// fallback (membrane MEMBRANE_DEV_MODE=true accepts these), so the laptop
+// loopback path works with no login flow (spec AC-5).
 function authHeaders(): Record<string, string> {
-  try {
-    const tok = window.localStorage.getItem("noodal.membraneToken");
-    if (tok) return { Authorization: `Bearer ${tok}` };
-  } catch {
-    /* localStorage unavailable */
-  }
-  // Dev-mode fallback (membrane MEMBRANE_DEV_MODE=true accepts scope headers).
+  const tok = getMembraneToken();
+  if (tok) return { Authorization: `Bearer ${tok}` };
   return {
     "X-Scope-OrgId": "sagacity",
     "X-Scope-TeamId": "platform",
@@ -116,7 +151,8 @@ function authHeaders(): Record<string, string> {
   };
 }
 
-async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function call<T>(method: string, path: string, body?: unknown, _retried = false): Promise<T> {
+  const hadToken = !!getMembraneToken();
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers: {
@@ -125,6 +161,19 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
+
+  // A 401 on a token-bearing request means the ID token expired or is invalid.
+  // Refresh once and retry; if refresh fails, clear the session and signal the
+  // app to route to login. In the dev X-Scope path (no token) a 401 is a normal
+  // access error and surfaces to the caller — there is no login to route to.
+  if (res.status === 401 && hadToken && !_retried) {
+    if (await refreshSession()) {
+      return call<T>(method, path, body, true);
+    }
+    clearMembraneSession();
+    emitUnauthorized();
+  }
+
   if (!res.ok) {
     let detail: unknown = res.statusText;
     try {
@@ -143,9 +192,28 @@ function gangBase(communityId: string, gangId: string): string {
   return `/communities/${encodeURIComponent(communityId)}/gangs/${encodeURIComponent(gangId)}`;
 }
 
-// --- Members / seats (Owner/Admin only, audited server-side) ---
-
 export const membraneApi = {
+  // --- Live reads: rail (communities → gangs → corpora) + per-corpus loops ---
+
+  listCommunities(): Promise<CommunityDTO[]> {
+    return call("GET", `/communities`);
+  },
+
+  listGangs(communityId: string): Promise<GangDTO[]> {
+    return call("GET", `/communities/${encodeURIComponent(communityId)}/gangs`);
+  },
+
+  listGangCorpora(communityId: string, gangId: string): Promise<CorpusDTO[]> {
+    return call("GET", `${gangBase(communityId, gangId)}/corpora`);
+  },
+
+  listLoops(organismId: string, status?: string): Promise<LoopDTO[]> {
+    const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+    return call("GET", `/organisms/${encodeURIComponent(organismId)}/loops${qs}`);
+  },
+
+  // --- Members / seats (Owner/Admin only, audited server-side) ---
+
   listMembers(communityId: string, gangId: string): Promise<MemberRow[]> {
     return call("GET", `${gangBase(communityId, gangId)}/members`);
   },
