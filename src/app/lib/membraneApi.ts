@@ -16,6 +16,23 @@
 export type MemberTier = "owner" | "admin" | null;
 export type GrantLevel = "observer" | "contributor";
 
+// Read-back vocabulary (loop b85f8a56) — mirrors nucleus AccessLevel/AccessSource.
+export type AccessLevel = "no-access" | "observer" | "contributor" | "full";
+export type AccessSource =
+  | "owner"
+  | "admin"
+  | "per_corpus_grant"
+  | "gang_wide_grant"
+  | "navigator_baseline"
+  | "none";
+
+export interface AccessSummary {
+  observer_count: number;
+  contributor_count: number;
+  total_at_or_above_observer: number;
+  gang_wide_grant: GrantLevel | null;
+}
+
 export interface MemberRow {
   member_id: string;
   user_id: string;
@@ -23,6 +40,60 @@ export interface MemberRow {
   tier: MemberTier;
   gang_wide_grant: GrantLevel | null;
   corpus_grant_count: number;
+  // Effective-based summary the roster now embeds (read-back); optional so the
+  // page degrades gracefully against an older membrane.
+  access_summary?: AccessSummary;
+}
+
+export interface EffectiveRow {
+  organism_id: string;
+  corpus_name: string | null;
+  effective_level: AccessLevel;
+  source: AccessSource;
+}
+
+export interface ExplicitGrant {
+  organism_id: string;
+  corpus_name: string | null;
+  grant_level: GrantLevel;
+  granted_by: string | null;
+  granted_at: string | null;
+}
+
+export interface MemberAccess {
+  member: { member_id: string; display: string; tier: MemberTier; status: string };
+  gang_id: string;
+  effective: EffectiveRow[]; // headline: what the member can actually reach
+  explicit: { gang_wide_grant: GrantLevel | null; corpus_grants: ExplicitGrant[] }; // editable source of truth
+}
+
+export interface CorpusAccessMember {
+  member_id: string;
+  display: string;
+  effective_level: AccessLevel;
+  source: AccessSource;
+}
+
+export interface CorpusAccess {
+  organism_id: string;
+  corpus_name: string | null;
+  members: CorpusAccessMember[];
+}
+
+export interface MyAccess {
+  member_id: string;
+  gang_id: string;
+  effective: EffectiveRow[];
+}
+
+export interface AccessHistoryEvent {
+  acting_principal: string;
+  target_member: string | null;
+  organism_id: string | null;
+  old_level: string | null;
+  new_level: string | null;
+  change_type: string;
+  timestamp: string | null;
 }
 
 const BASE =
@@ -130,5 +201,41 @@ export const membraneApi = {
     return call("PUT", `${gangBase(communityId, gangId)}/members/${memberId}/gang-wide-grant`, {
       grant_level: grantLevel,
     });
+  },
+
+  // --- Read-back (loop b85f8a56) — see -> verify -> safely modify. READ-ONLY ---
+
+  getMemberAccess(communityId: string, gangId: string, memberId: string): Promise<MemberAccess> {
+    return call("GET", `${gangBase(communityId, gangId)}/members/${memberId}/access`);
+  },
+
+  getCorpusAccess(communityId: string, gangId: string, organismId: string): Promise<CorpusAccess> {
+    return call(
+      "GET",
+      `${gangBase(communityId, gangId)}/corpora/${encodeURIComponent(organismId)}/access`,
+    );
+  },
+
+  getMyAccess(communityId: string, gangId: string): Promise<MyAccess> {
+    return call("GET", `${gangBase(communityId, gangId)}/me/access`);
+  },
+
+  getMemberAccessHistory(
+    communityId: string,
+    gangId: string,
+    memberId: string,
+  ): Promise<AccessHistoryEvent[]> {
+    return call("GET", `${gangBase(communityId, gangId)}/members/${memberId}/access/history`);
+  },
+
+  getCorpusAccessHistory(
+    communityId: string,
+    gangId: string,
+    organismId: string,
+  ): Promise<AccessHistoryEvent[]> {
+    return call(
+      "GET",
+      `${gangBase(communityId, gangId)}/corpora/${encodeURIComponent(organismId)}/access/history`,
+    );
   },
 };

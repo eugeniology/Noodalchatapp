@@ -3,7 +3,15 @@ import { Lock } from "lucide-react";
 import { AdminShell } from "./AdminPages";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { membraneApi, type GrantLevel, type MemberRow, type MemberTier } from "../lib/membraneApi";
+import {
+  membraneApi,
+  type AccessLevel,
+  type AccessSource,
+  type GrantLevel,
+  type MemberAccess,
+  type MemberRow,
+  type MemberTier,
+} from "../lib/membraneApi";
 import type { Corpus } from "../types";
 
 // Members & Access — the WRITE side of the tree-as-access-view (design-input
@@ -161,6 +169,33 @@ function MemberCard({
   const isOwner = member.tier === "owner";
   const suspended = member.status === "suspended";
 
+  // Read-back (loop b85f8a56): fetch this member's effective + explicit access so
+  // each corpus row shows the CURRENT level + where it comes from — closing the
+  // write-forward-blind gap. Degrades gracefully if the membrane lacks read-back.
+  const [access, setAccess] = useState<MemberAccess | null>(null);
+  const loadAccess = useCallback(async () => {
+    try {
+      setAccess(await membraneApi.getMemberAccess(communityId, gangId, member.member_id));
+    } catch {
+      setAccess(null);
+    }
+  }, [communityId, gangId, member.member_id]);
+  useEffect(() => {
+    void loadAccess();
+  }, [loadAccess]);
+
+  const effByCorpus = new Map((access?.effective ?? []).map((r) => [r.organism_id, r]));
+  const explicitByCorpus = new Map(
+    (access?.explicit.corpus_grants ?? []).map((g) => [g.organism_id, g.grant_level]),
+  );
+
+  // After a grant/revoke, refetch so the displayed level reflects the change
+  // immediately (cache invalidation; "see what you just changed").
+  const onGrantAction = async (key: string, fn: () => Promise<unknown>) => {
+    await onAction(key, fn);
+    await loadAccess();
+  };
+
   const setTier = (tier: MemberTier) =>
     onAction(`tier-${member.member_id}`, () =>
       membraneApi.setMemberTier(communityId, gangId, member.member_id, tier),
@@ -211,8 +246,11 @@ function MemberCard({
             highlight={c.id === focusCorpusId}
             disabled={isOwner}
             busy={busy === `grant-${member.member_id}-${c.id}`}
+            effectiveLevel={isOwner ? "full" : effByCorpus.get(c.id)?.effective_level}
+            source={isOwner ? "owner" : effByCorpus.get(c.id)?.source}
+            currentGrant={explicitByCorpus.get(c.id) ?? null}
             onSet={(level) =>
-              onAction(`grant-${member.member_id}-${c.id}`, () =>
+              onGrantAction(`grant-${member.member_id}-${c.id}`, () =>
                 level === null
                   ? membraneApi.revokeCorpusGrant(communityId, gangId, member.member_id, c.id)
                   : membraneApi.grantCorpusAccess(communityId, gangId, member.member_id, c.id, level),
@@ -225,21 +263,52 @@ function MemberCard({
   );
 }
 
+const SOURCE_LABEL: Record<AccessSource, string> = {
+  per_corpus_grant: "direct",
+  gang_wide_grant: "gang-wide",
+  navigator_baseline: "baseline",
+  owner: "owner",
+  admin: "admin",
+  none: "",
+};
+
+function AccessBadge({ level, source }: { level?: AccessLevel; source?: AccessSource }) {
+  // Effective level + where it comes from, so inherited access (gang-wide /
+  // baseline) is never mistaken for an explicit per-corpus grant (US-4).
+  if (!level || level === "no-access") return null;
+  const via = source ? SOURCE_LABEL[source] : "";
+  return (
+    <span
+      className="text-[10px] rounded px-1 py-0.5 bg-muted text-muted-foreground shrink-0"
+      title={`effective: ${level}${via ? ` (via ${via})` : ""}`}
+    >
+      {level}
+      {via && via !== "direct" ? ` · ${via}` : ""}
+    </span>
+  );
+}
+
 function CorpusGrantRow({
   corpus,
   highlight,
   disabled,
   busy,
+  effectiveLevel,
+  source,
+  currentGrant,
   onSet,
 }: {
   corpus: Corpus;
   highlight: boolean;
   disabled: boolean;
   busy: boolean;
+  effectiveLevel?: AccessLevel;
+  source?: AccessSource;
+  currentGrant: GrantLevel | null;
   onSet: (level: GrantLevel | null) => void;
 }) {
-  // The current grant level isn't returned per-corpus by the roster endpoint
-  // yet; the control is write-forward (set/clear). Owner rows are disabled —
+  // The select edits the EXPLICIT per-corpus grant (controlled by currentGrant);
+  // the badge shows the EFFECTIVE level + its source. Owner rows are disabled —
   // owners have full implicit access (the short-circuit) and aren't granted.
   return (
     <div
@@ -252,10 +321,11 @@ function CorpusGrantRow({
           <Lock className="h-3 w-3 shrink-0 text-muted-foreground" aria-label="locked" />
         )}
         {corpus.name}
+        <AccessBadge level={effectiveLevel} source={source} />
       </span>
       <select
         className="text-xs border border-border rounded px-1 py-0.5 bg-background"
-        defaultValue=""
+        value={currentGrant ?? ""}
         disabled={disabled || busy}
         onChange={(e) => onSet((e.target.value || null) as GrantLevel | null)}
         aria-label={`access for ${corpus.name}`}
