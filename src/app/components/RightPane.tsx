@@ -160,13 +160,18 @@ export function RightPane({
               <SectionHeader id="loops" onClose={collapse}>
                 <div className="mt-2 space-y-2">
                   {loops.map((loop) => (
-                    <div key={loop.id} className="flex items-center justify-between text-sm gap-2">
-                      <span className="truncate">{loop.name}</span>
+                    <div key={loop.id} className="flex items-start justify-between text-sm gap-2">
+                      {/* min-w-0 lets the flex child shrink so break-words can wrap
+                          long live loop titles instead of overflowing the pane. */}
+                      <span className="min-w-0 break-words">{loop.name}</span>
                       <Badge variant={loop.status === "CLOSED" ? "secondary" : "outline"} className="text-xs shrink-0">
                         {loop.status}
                       </Badge>
                     </div>
                   ))}
+                  {loops.length === 0 && (
+                    <div className="text-xs text-muted-foreground italic">no loops yet</div>
+                  )}
                 </div>
               </SectionHeader>
             </div>
