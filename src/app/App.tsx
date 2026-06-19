@@ -9,6 +9,7 @@ import { ScratchPad } from "./components/ScratchPad";
 import { ModelsPage, ProfilePage, type AdminPage } from "./components/AdminPages";
 import { MembersAccessPage } from "./components/MembersAccessPage";
 import { LoginScreen } from "./components/LoginScreen";
+import { ConsumerLanding } from "./components/onboarding/ConsumerLanding";
 import { Button } from "./components/ui/button";
 import { membraneApi } from "./lib/membraneApi";
 import { loadCommunity } from "./lib/communityData";
@@ -743,22 +744,23 @@ export default function App() {
   }
 
   if (community.gangs.length === 0) {
+    // A logged-in user with no accessible platform corpora is the consumer case
+    // (their noodal lives behind their MCP client, not this web workspace). Land
+    // them on the connect-your-MCP page instead of a dead-end. The dev X-Scope
+    // path has no `me`; keep the simple retriable shell there.
+    if (me) {
+      return <ConsumerLanding me={me} onLogout={handleLogout} />;
+    }
     return (
       <CenteredShell>
         <p className="text-sm text-muted-foreground">
-          No accessible corpora yet. Ask an owner or admin to grant you access.
+          No accessible corpora yet.
         </p>
         <div className="flex items-center justify-center gap-2">
           <Button onClick={() => void boot()}>Refresh</Button>
-          {me ? (
-            <Button variant="ghost" onClick={handleLogout}>
-              Log out
-            </Button>
-          ) : (
-            <Button variant="ghost" onClick={() => setShowLogin(true)}>
-              Sign in
-            </Button>
-          )}
+          <Button variant="ghost" onClick={() => setShowLogin(true)}>
+            Sign in
+          </Button>
         </div>
       </CenteredShell>
     );
