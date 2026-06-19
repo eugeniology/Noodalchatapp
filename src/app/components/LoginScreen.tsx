@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { login, type UserInfo } from "../lib/membraneSession";
@@ -99,6 +100,15 @@ export function LoginScreen({ onAuthed, onCancel }: LoginScreenProps) {
               Cancel
             </Button>
           )}
+        </div>
+
+        <div className="flex items-center justify-between text-sm text-muted-foreground pt-1">
+          <Link to="/signup" className="text-foreground underline underline-offset-4">
+            Create account
+          </Link>
+          <Link to="/forgot-password" className="hover:text-foreground">
+            Forgot password?
+          </Link>
         </div>
       </form>
     </div>

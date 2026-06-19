@@ -29,6 +29,10 @@ export default defineConfig({
       // Alias @ to the src directory
       '@': path.resolve(__dirname, './src'),
     },
+    // Force a single React instance. react-router (v7) gets pre-bundled by the
+    // dep optimizer and would otherwise resolve its own copy of React, yielding
+    // the "Invalid hook call / more than one copy of React" runtime error.
+    dedupe: ['react', 'react-dom'],
   },
 
   // File types to support raw imports. Never add .css, .tsx, or .ts files to this.
