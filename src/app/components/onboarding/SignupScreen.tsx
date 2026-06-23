@@ -46,6 +46,7 @@ export function SignupScreen() {
 
   return (
     <OnboardingShell
+      chrome
       title="Create your Noodal"
       subtitle="One free, private knowledge corpus — reachable from your own MCP client."
       step="signup"
