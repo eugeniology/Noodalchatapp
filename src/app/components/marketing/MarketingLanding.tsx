@@ -18,7 +18,7 @@ const OWNERSHIP = [
   },
   {
     h: "Yours to take, anytime",
-    p: "Export the whole thing as plain markdown whenever you want. No lock-in, no hostage data.",
+    p: "Export your whole corpus as JSON in one click. Delete it and it's gone for good. No lock-in, no hostage data.",
   },
   {
     h: "Never anyone's training data",
@@ -29,7 +29,7 @@ const OWNERSHIP = [
 const STEPS = [
   { n: "01", h: "Your noodal goes live instantly", p: "Sign up free and your noodal exists in seconds. No waitlist, no setup call." },
   { n: "02", h: "Add noodal to your AI in one step", p: "Paste one URL into your MCP client. Your own model does the thinking." },
-  { n: "03", h: "Talk, and it starts remembering", p: "Say hello and it begins keeping the story of now — across every session." },
+  { n: "03", h: "Talk, and it starts remembering", p: "Every exchange adds to it — the more you bring it, the more it carries forward, across every future session." },
 ];
 
 const CONNECTORS = ["Claude", "ChatGPT", "Cursor", "OpenClaw", "Any MCP client"];
@@ -40,7 +40,7 @@ const TIERS = [
     price: "$0",
     cadence: "forever free",
     blurb: "One noodal, focused on a very specific subject. In this case, you.",
-    features: ["Cross-session memory via your MCP client", "Bring your own model", "Plain-markdown export, anytime"],
+    features: ["One private, isolated corpus", "Cross-session memory via your MCP client", "Bring your own model", "Export your data anytime (JSON)"],
     cta: "Get started free",
     highlight: false,
   },
@@ -49,7 +49,7 @@ const TIERS = [
     price: "$12",
     cadence: "/mo · or $120/yr",
     founders: "$6/mo or $60/yr for the Founding Circle",
-    blurb: "Everything in Noodal, plus compounding memory across many noodals that talk to each other.",
+    blurb: "Everything in Noodal — plus many noodals that compound, communicate, and run tasks for you. For family, business, projects, or studies. Coming this fall.",
     features: ["Multiple noodals", "Compounding cross-noodal memory", "Notes & inter-expert distillation", "Priority support"],
     cta: "Join the Founding Circle",
     highlight: true,
