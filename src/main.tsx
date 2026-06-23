@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router";
 import App from "./app/App.tsx";
+import { MarketingLanding } from "./app/components/marketing/MarketingLanding.tsx";
 import { SignupScreen } from "./app/components/onboarding/SignupScreen.tsx";
 import { VerifyEmailScreen } from "./app/components/onboarding/VerifyEmailScreen.tsx";
 import { ConnectMcpScreen } from "./app/components/onboarding/ConnectMcpScreen.tsx";
@@ -15,6 +16,7 @@ import "./styles/index.css";
 createRoot(document.getElementById("root")!).render(
   <BrowserRouter>
     <Routes>
+      <Route path="/" element={<MarketingLanding />} />
       <Route path="/signup" element={<SignupScreen />} />
       <Route path="/verify-email" element={<VerifyEmailScreen />} />
       <Route path="/onboarding" element={<ConnectMcpScreen />} />
