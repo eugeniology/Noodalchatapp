@@ -1,4 +1,5 @@
-import { useNavigate } from "react-router";
+import { useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router";
 
 // Noodals marketing landing — Cut 1 of eng-noodals-consumer-marketing-surface-v1.
 // Built code-as-source to the design at /dev/noodals-design/noodals2/Noodal.dc.html
@@ -9,7 +10,15 @@ const serif = { fontFamily: "var(--font-fraunces)" } as const;
 const mono = { fontFamily: "var(--font-plex-mono)" } as const;
 const sans = { fontFamily: "var(--font-plex-sans)" } as const;
 
-const NAV = ["Product", "Pricing", "Setup", "Blog", "FAQ", "About", "Contact"];
+const NAV: { label: string; href?: string; to?: string }[] = [
+  { label: "Product", href: "#product" },
+  { label: "Pricing", href: "#pricing" },
+  { label: "Setup", href: "#setup" },
+  { label: "Blog", to: "/blog" },
+  { label: "FAQ", to: "/faq" },
+  { label: "About", href: "#product" },
+  { label: "Contact", to: "/contact" },
+];
 
 const OWNERSHIP = [
   {
@@ -67,7 +76,15 @@ const TIERS = [
 
 export function MarketingLanding() {
   const navigate = useNavigate();
+  const { hash } = useLocation();
   const start = () => navigate("/signup");
+
+  useEffect(() => {
+    if (hash) {
+      const el = document.querySelector(hash);
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [hash]);
 
   return (
     <div style={{ ...sans, background: "#ffffff", color: "var(--noo-text)" }} className="min-h-screen w-full overflow-x-hidden">
@@ -93,11 +110,17 @@ export function MarketingLanding() {
           </span>
         </a>
         <nav className="hidden items-center gap-7 md:flex">
-          {NAV.map((n) => (
-            <a key={n} href={`#${n.toLowerCase()}`} style={sans} className="text-[15px] text-[#54515d] hover:text-[var(--noo-ink)]">
-              {n}
-            </a>
-          ))}
+          {NAV.map((n) =>
+            n.to ? (
+              <Link key={n.label} to={n.to} style={sans} className="text-[15px] text-[#54515d] hover:text-[var(--noo-ink)]">
+                {n.label}
+              </Link>
+            ) : (
+              <a key={n.label} href={n.href} style={sans} className="text-[15px] text-[#54515d] hover:text-[var(--noo-ink)]">
+                {n.label}
+              </a>
+            ),
+          )}
         </nav>
         <button
           onClick={start}
@@ -139,7 +162,7 @@ export function MarketingLanding() {
             <p className="text-[#54515d]"><span style={{ ...mono, color: "var(--noo-purple)" }} className="mr-2 text-[12px]">you</span>where did we land on the pricing?</p>
             <div className="rounded-[12px] p-4" style={{ background: "#fff", border: "1px solid #ece8df" }}>
               <p style={{ color: "var(--noo-ink)" }} className="leading-relaxed">
-                Pro is <strong>$12/mo</strong> ($120/yr). You opened a first-cohort Founding Circle at half off ($6) — that changed two days ago from the earlier $6 base.
+                Noodals is <strong>$12/mo</strong> ($120/yr). You opened a first-cohort Founding Circle at half off ($6) — that changed two days ago from the earlier $6 base.
               </p>
             </div>
             <p style={{ ...mono, color: "var(--noo-green)" }} className="text-[12px]">↳ answered from the whole story, naming what changed</p>
