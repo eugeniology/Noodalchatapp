@@ -2,6 +2,9 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes } from "react-router";
 import App from "./app/App.tsx";
 import { MarketingLanding } from "./app/components/marketing/MarketingLanding.tsx";
+import { FaqPage } from "./app/components/marketing/FaqPage.tsx";
+import { ContactPage } from "./app/components/marketing/ContactPage.tsx";
+import { BlogPage } from "./app/components/marketing/BlogPage.tsx";
 import { SignupScreen } from "./app/components/onboarding/SignupScreen.tsx";
 import { VerifyEmailScreen } from "./app/components/onboarding/VerifyEmailScreen.tsx";
 import { ConnectMcpScreen } from "./app/components/onboarding/ConnectMcpScreen.tsx";
@@ -17,6 +20,9 @@ createRoot(document.getElementById("root")!).render(
   <BrowserRouter>
     <Routes>
       <Route path="/" element={<MarketingLanding />} />
+      <Route path="/blog" element={<BlogPage />} />
+      <Route path="/faq" element={<FaqPage />} />
+      <Route path="/contact" element={<ContactPage />} />
       <Route path="/signup" element={<SignupScreen />} />
       <Route path="/verify-email" element={<VerifyEmailScreen />} />
       <Route path="/onboarding" element={<ConnectMcpScreen />} />
