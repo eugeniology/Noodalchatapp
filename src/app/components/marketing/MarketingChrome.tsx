@@ -22,7 +22,7 @@ export function MarketingHeader() {
   return (
     <>
       <div style={{ background: "var(--noo-paper)", borderBottom: "1px solid #ece8df" }}>
-        <div className="mx-auto flex max-w-6xl items-center justify-center gap-3 px-6 py-2.5 text-center">
+        <div className="mx-auto flex w-full max-w-6xl items-center justify-center gap-3 px-6 py-2.5 text-center">
           <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: "var(--noo-green-light)" }} />
           <p style={{ ...mono, color: "var(--noo-ink)" }} className="text-[12px] tracking-tight">
             The Founding Circle is open — Noodals at half&nbsp;off for those who get here&nbsp;first
@@ -32,7 +32,7 @@ export function MarketingHeader() {
           </button>
         </div>
       </div>
-      <header className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-5">
+      <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-6 px-6 py-5">
         <Link to="/" className="flex items-center gap-2.5">
           <span className="inline-block h-3.5 w-3.5 rounded-full" style={{ background: "var(--noo-purple)" }} />
           <span style={{ ...serif, color: "var(--noo-ink)" }} className="text-[22px] font-semibold tracking-tight">noodal</span>
@@ -55,7 +55,7 @@ export function MarketingHeader() {
 export function MarketingFooter() {
   return (
     <footer style={{ background: "var(--noo-paper)" }} className="mt-auto border-t">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-6 py-10 md:flex-row">
+      <div className="mx-auto flex w-full max-w-6xl flex-col items-center justify-between gap-4 px-6 py-10 md:flex-row">
         <div className="flex items-center gap-2.5">
           <span className="inline-block h-3 w-3 rounded-full" style={{ background: "var(--noo-purple)" }} />
           <span style={{ ...serif, color: "var(--noo-ink)" }} className="text-[18px] font-semibold">noodal</span>
