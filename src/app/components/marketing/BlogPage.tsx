@@ -18,13 +18,13 @@ const POSTS: Post[] = [
     date: "JUN 15",
     tag: "WHAT CHANGED",
     title: "Signup is now open & self-serve",
-    excerpt: "No waitlist to start. Verification became a soft nudge, and provisioning happens on the spot.",
+    excerpt: "No waitlist, no invite code. Sign up and your noodal is ready.",
   },
   {
     date: "JUN 02",
     tag: "WHAT CHANGED",
     title: "We shipped the free tier MCP-first",
-    excerpt: "Bring your own model, connect through your MCP client, and start remembering across every session.",
+    excerpt: "Your noodal works with Claude, Cursor, ChatGPT — any MCP client. Paste one URL. No keys.",
   },
 ];
 

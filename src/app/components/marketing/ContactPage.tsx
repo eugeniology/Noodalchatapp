@@ -24,7 +24,7 @@ export function ContactPage() {
         {sent ? (
           <div className="mt-10 rounded-[16px] border p-8 text-center" style={{ borderColor: "var(--noo-green-light)", background: "var(--noo-green-tint)" }}>
             <p style={{ ...serif, color: "var(--noo-ink)" }} className="text-[22px] font-medium">Got it. It's in my inbox.</p>
-            <p className="mt-2 text-[15px] text-[#54515d]">You'll hear back from a human, soon.</p>
+            <p className="mt-2 text-[15px] text-[#54515d]">I'll be back to you soon.</p>
           </div>
         ) : (
           <form
