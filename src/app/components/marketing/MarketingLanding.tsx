@@ -1,5 +1,6 @@
 import { useEffect } from "react";
-import { Link, useLocation, useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
+import { MarketingHeader } from "./MarketingChrome";
 
 // Noodals marketing landing — Cut 1 of eng-noodals-consumer-marketing-surface-v1.
 // Built code-as-source to the design at /dev/noodals-design/noodals2/Noodal.dc.html
@@ -9,16 +10,6 @@ import { Link, useLocation, useNavigate } from "react-router";
 const serif = { fontFamily: "var(--font-fraunces)" } as const;
 const mono = { fontFamily: "var(--font-plex-mono)" } as const;
 const sans = { fontFamily: "var(--font-plex-sans)" } as const;
-
-const NAV: { label: string; href?: string; to?: string }[] = [
-  { label: "Product", href: "#product" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "Setup", href: "#setup" },
-  { label: "Blog", to: "/blog" },
-  { label: "FAQ", to: "/faq" },
-  { label: "About", href: "#product" },
-  { label: "Contact", to: "/contact" },
-];
 
 const OWNERSHIP = [
   {
@@ -88,48 +79,7 @@ export function MarketingLanding() {
 
   return (
     <div style={{ ...sans, background: "#ffffff", color: "var(--noo-text)" }} className="min-h-screen w-full overflow-x-hidden">
-      {/* Top banner */}
-      <div style={{ background: "var(--noo-paper)", borderBottom: "1px solid #ece8df" }}>
-        <div className="mx-auto flex max-w-6xl items-center justify-center gap-3 px-6 py-2.5 text-center">
-          <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: "var(--noo-green-light)" }} />
-          <p style={{ ...mono, color: "var(--noo-ink)" }} className="text-[12px] tracking-tight">
-            The Founding Circle is open — Noodals at half&nbsp;off for those who get here&nbsp;first
-          </p>
-          <button onClick={start} style={{ ...mono, color: "var(--noo-purple)" }} className="text-[12px] underline underline-offset-4 hover:opacity-70">
-            See the offer&nbsp;→
-          </button>
-        </div>
-      </div>
-
-      {/* Nav */}
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-        <a href="/" className="flex items-center gap-2.5">
-          <span className="inline-block h-3.5 w-3.5 rounded-full" style={{ background: "var(--noo-purple)" }} />
-          <span style={{ ...serif, color: "var(--noo-ink)" }} className="text-[22px] font-semibold tracking-tight">
-            noodal
-          </span>
-        </a>
-        <nav className="hidden items-center gap-7 md:flex">
-          {NAV.map((n) =>
-            n.to ? (
-              <Link key={n.label} to={n.to} style={sans} className="text-[15px] text-[#54515d] hover:text-[var(--noo-ink)]">
-                {n.label}
-              </Link>
-            ) : (
-              <a key={n.label} href={n.href} style={sans} className="text-[15px] text-[#54515d] hover:text-[var(--noo-ink)]">
-                {n.label}
-              </a>
-            ),
-          )}
-        </nav>
-        <button
-          onClick={start}
-          style={{ background: "var(--noo-purple)" }}
-          className="rounded-[10px] px-4 py-2.5 text-[14px] font-medium leading-tight text-white hover:opacity-90"
-        >
-          Get started free
-        </button>
-      </header>
+      <MarketingHeader />
 
       {/* Hero — editorial */}
       <section className="mx-auto grid max-w-6xl items-center gap-12 px-6 pb-20 pt-12 md:grid-cols-[1.1fr_0.9fr] md:pt-20">

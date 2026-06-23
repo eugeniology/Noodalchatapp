@@ -39,9 +39,13 @@ export function MarketingHeader() {
         </Link>
         <div className="flex items-center gap-7">
           <nav className="hidden items-center gap-7 md:flex">
-            {NAV.map((n) => (
-              <Link key={n.label} to={n.to} style={sans} className="text-[15px] text-[#54515d] hover:text-[var(--noo-ink)]">{n.label}</Link>
-            ))}
+            {NAV.map((n) =>
+              n.to.startsWith("/#") ? (
+                <a key={n.label} href={n.to} style={sans} className="text-[15px] text-[#54515d] hover:text-[var(--noo-ink)]">{n.label}</a>
+              ) : (
+                <Link key={n.label} to={n.to} style={sans} className="text-[15px] text-[#54515d] hover:text-[var(--noo-ink)]">{n.label}</Link>
+              ),
+            )}
           </nav>
           <button onClick={() => navigate("/signup")} style={{ background: "var(--noo-purple)" }} className="rounded-[10px] px-4 py-2.5 text-[14px] font-medium leading-tight text-white hover:opacity-90">
             Get started free
@@ -61,9 +65,13 @@ export function MarketingFooter() {
           <span style={{ ...serif, color: "var(--noo-ink)" }} className="text-[18px] font-semibold">noodal</span>
         </div>
         <nav className="flex flex-wrap items-center justify-center gap-5">
-          {NAV.map((n) => (
-            <Link key={n.label} to={n.to} style={mono} className="text-[12px] text-[#7a7788] hover:text-[var(--noo-ink)]">{n.label}</Link>
-          ))}
+          {NAV.map((n) =>
+            n.to.startsWith("/#") ? (
+              <a key={n.label} href={n.to} style={mono} className="text-[12px] text-[#7a7788] hover:text-[var(--noo-ink)]">{n.label}</a>
+            ) : (
+              <Link key={n.label} to={n.to} style={mono} className="text-[12px] text-[#7a7788] hover:text-[var(--noo-ink)]">{n.label}</Link>
+            ),
+          )}
         </nav>
         <p style={mono} className="text-[12px] text-[#7a7788]">The story that stays true as you change.</p>
       </div>
