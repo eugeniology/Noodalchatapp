@@ -14,7 +14,7 @@ const NAV = ["Product", "Pricing", "Setup", "Blog", "FAQ", "About", "Contact"];
 const OWNERSHIP = [
   {
     h: "Your model, your bill",
-    p: "Your noodal runs on the model you already use. We bill zero inference — the thinking is your model of choice.",
+    p: "Your noodal runs on the AI you already use. We don't charge for inference — bring your own engine, keep it where it is.",
   },
   {
     h: "Yours to take, anytime",
@@ -28,7 +28,7 @@ const OWNERSHIP = [
 
 const STEPS = [
   { n: "01", h: "Your noodal goes live instantly", p: "Sign up free and your noodal exists in seconds. No waitlist, no setup call." },
-  { n: "02", h: "Add the connector to your AI tool", p: "Paste one URL into your MCP client. Your own model does the thinking." },
+  { n: "02", h: "Add noodal to your AI in one step", p: "Paste one URL into your MCP client. Your own model does the thinking." },
   { n: "03", h: "Talk, and it starts remembering", p: "Say hello and it begins keeping the story of now — across every session." },
 ];
 
@@ -48,7 +48,7 @@ const TIERS = [
     name: "Noodals",
     price: "$12",
     cadence: "/mo · or $120/yr",
-    founders: "$6/mo for the Founding Circle",
+    founders: "$6/mo or $60/yr for the Founding Circle",
     blurb: "Everything in Noodal, plus compounding memory across many noodals that talk to each other.",
     features: ["Multiple noodals", "Compounding cross-noodal memory", "Notes & inter-expert distillation", "Priority support"],
     cta: "Join the Founding Circle",
@@ -76,7 +76,7 @@ export function MarketingLanding() {
         <div className="mx-auto flex max-w-6xl items-center justify-center gap-3 px-6 py-2.5 text-center">
           <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: "var(--noo-green-light)" }} />
           <p style={{ ...mono, color: "var(--noo-ink)" }} className="text-[12px] tracking-tight">
-            The Founding Circle is open — lock Noodals at half&nbsp;off before fall
+            The Founding Circle is open — Noodals at half&nbsp;off for those who get here&nbsp;first
           </p>
           <button onClick={start} style={{ ...mono, color: "var(--noo-purple)" }} className="text-[12px] underline underline-offset-4 hover:opacity-70">
             See the offer&nbsp;→
@@ -112,7 +112,7 @@ export function MarketingLanding() {
       <section className="mx-auto grid max-w-6xl items-center gap-12 px-6 pb-20 pt-12 md:grid-cols-[1.1fr_0.9fr] md:pt-20">
         <div>
           <p style={{ ...mono, color: "var(--noo-green)" }} className="mb-6 text-[12px] uppercase tracking-[0.14em]">
-            Cross-session memory · Always free
+            Memory that compounds · Always free
           </p>
           <h1 style={{ ...serif, color: "var(--noo-ink)" }} className="text-[44px] font-semibold leading-[1.04] tracking-tight md:text-[60px]">
             Working memory for whatever you're in the middle&nbsp;of.
@@ -122,7 +122,7 @@ export function MarketingLanding() {
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-4">
             <button onClick={start} style={{ background: "var(--noo-purple)" }} className="rounded-[12px] px-6 py-3.5 text-[15px] font-medium text-white hover:opacity-90">
-              Claim your free noodal&nbsp;→
+              Start your free noodal&nbsp;→
             </button>
             <a href="#setup" style={{ color: "var(--noo-ink)" }} className="text-[15px] underline underline-offset-4 hover:opacity-70">
               See how it works
@@ -155,7 +155,7 @@ export function MarketingLanding() {
             A noodal is working memory for one subject — in this case, you.
           </h2>
           <p className="mx-auto mt-6 max-w-2xl text-[18px] leading-relaxed text-[#54515d]">
-            Ask where something stands and it answers from the whole story — naming what changed and bringing you up to now. It remembers, it stays true, and it keeps you informed.
+            Ask where something stands and it answers from the whole story — naming what changed and bringing you up to now. It remembers, it stays true, and when things shift, it catches you up.
           </p>
         </div>
       </section>
