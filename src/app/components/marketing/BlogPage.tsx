@@ -31,7 +31,7 @@ const POSTS: Post[] = [
 export function BlogPage() {
   return (
     <MarketingPage>
-      <section className="mx-auto max-w-3xl px-6 py-20">
+      <section className="mx-auto max-w-6xl px-6 py-20">
         <p style={{ ...mono, color: "var(--noo-terracotta)" }} className="mb-4 text-[12px] uppercase tracking-[0.14em]">The Noodal blog</p>
         <h1 style={{ ...serif, color: "var(--noo-ink)" }} className="text-[34px] font-semibold leading-tight md:text-[44px]">
           Notes from building the memory layer.
@@ -43,7 +43,7 @@ export function BlogPage() {
             <p className="mt-2 text-[15px] text-[#54515d]">The first notes are on the way.</p>
           </div>
         ) : (
-          <div className="mt-12 space-y-2">
+          <div className="mt-12 grid gap-6 md:grid-cols-2">
             {POSTS.map((p) => (
               <a key={p.title} href="#" className="block rounded-[16px] border p-7 transition hover:shadow-sm" style={{ borderColor: "#ece8df" }}>
                 <div className="flex items-center gap-3">

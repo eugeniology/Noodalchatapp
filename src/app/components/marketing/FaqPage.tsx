@@ -38,13 +38,13 @@ const FAQS: { q: string; a: string }[] = [
 export function FaqPage() {
   return (
     <MarketingPage>
-      <section className="mx-auto max-w-3xl px-6 py-20">
+      <section className="mx-auto max-w-6xl px-6 py-20">
         <p style={{ ...mono, color: "var(--noo-green)" }} className="mb-4 text-[12px] uppercase tracking-[0.14em]">What's this about?</p>
         <h1 style={{ ...serif, color: "var(--noo-ink)" }} className="text-[34px] font-semibold leading-tight md:text-[44px]">Questions, answered.</h1>
 
-        <div className="mt-12 divide-y" style={{ borderColor: "#ece8df" }}>
+        <div className="mt-10 grid gap-x-12 md:grid-cols-2">
           {FAQS.map((f) => (
-            <div key={f.q} className="py-7">
+            <div key={f.q} className="border-t py-7" style={{ borderColor: "#ece8df" }}>
               <h3 style={{ ...serif, color: "var(--noo-ink)" }} className="text-[20px] font-medium">{f.q}</h3>
               <p className="mt-3 text-[16px] leading-relaxed text-[#54515d]">{f.a}</p>
             </div>
