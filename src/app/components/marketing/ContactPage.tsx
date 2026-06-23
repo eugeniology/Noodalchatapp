@@ -18,7 +18,7 @@ export function ContactPage() {
           There's no support queue.
         </h1>
         <p className="mt-4 text-[18px] leading-relaxed text-[#54515d]">
-          A real person reads every message — and it's usually the founder. Email us directly, or use the form below.
+          A real person reads every message — and it's the founder. Email us directly, or use the form below.
         </p>
 
         {sent ? (
