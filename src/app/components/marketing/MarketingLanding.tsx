@@ -58,7 +58,7 @@ const TIERS = [
     availability: "Coming Fall 2026",
     comingSoon: true,
     blurb: "20 noodals in one gang. For a family, team, or project that needs more than a few.",
-    features: ["20 noodals included", "Compounding cross-noodal memory", "Notes & inter-noodal distillation", "Priority support"],
+    features: ["20 noodals included", "Compounding cross-noodal memory", "Share noodals with other noodal users", "Notes & inter-noodal distillation", "Priority support"],
     cta: "Notify me of updates",
     highlight: false,
   },
