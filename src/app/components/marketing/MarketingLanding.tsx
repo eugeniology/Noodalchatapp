@@ -11,6 +11,21 @@ const serif = { fontFamily: "var(--font-fraunces)" } as const;
 const mono = { fontFamily: "var(--font-plex-mono)" } as const;
 const sans = { fontFamily: "var(--font-plex-sans)" } as const;
 
+const USE_CASES = [
+  {
+    h: "A builder tracking a job",
+    p: "Ask how far a project has come and get the current numbers, not a guess. Square footage, budget, and change orders, all remembered.",
+  },
+  {
+    h: "A consultant across clients",
+    p: "Each client gets their own noodal. Pick up any thread months later and it still knows exactly where you left off.",
+  },
+  {
+    h: "A family running a gang of noodals",
+    p: "Run more than one noodal together and they stay true with each other. Update one, and the others carry that forward too.",
+  },
+];
+
 const OWNERSHIP = [
   {
     h: "Your model, your bill",
@@ -127,8 +142,25 @@ export function MarketingLanding() {
             A noodal is working memory for one subject: in this case, you.
           </h2>
           <p className="mx-auto mt-6 max-w-2xl text-[18px] leading-relaxed text-[#54515d]">
-            Ask where something stands and it answers from the whole story, naming what changed and bringing you up to now. It remembers, it stays true, and when things shift, it catches you up.
+            Ask where something stands and it answers from the whole story, naming what changed and bringing you up to now. It remembers, stays true session to session, and when you run more than one noodal, they stay true together too.
           </p>
+          <a href="#use-cases" style={{ color: "var(--noo-purple)" }} className="mt-4 inline-block text-[15px] underline underline-offset-4 hover:opacity-70">
+            See use cases&nbsp;→
+          </a>
+        </div>
+      </section>
+
+      {/* Use cases */}
+      <section id="use-cases" className="mx-auto max-w-6xl px-6 py-20">
+        <p style={{ ...mono, color: "var(--noo-terracotta)" }} className="mb-3 text-center text-[12px] uppercase tracking-[0.14em]">Real work, remembered</p>
+        <h2 style={{ ...serif, color: "var(--noo-ink)" }} className="mb-12 text-center text-[32px] font-semibold tracking-tight md:text-[40px]">Use cases</h2>
+        <div className="grid gap-6 md:grid-cols-3">
+          {USE_CASES.map((c) => (
+            <div key={c.h} className="rounded-[16px] border p-7" style={{ borderColor: "#ece8df" }}>
+              <h3 style={{ ...serif, color: "var(--noo-ink)" }} className="text-[20px] font-medium">{c.h}</h3>
+              <p className="mt-3 text-[15px] leading-relaxed text-[#54515d]">{c.p}</p>
+            </div>
+          ))}
         </div>
       </section>
 
