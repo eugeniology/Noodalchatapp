@@ -1,5 +1,5 @@
-// The MCP clients we give explicit setup steps for. Noodal is client-agnostic —
-// any MCP-speaking tool works against the same connector URL — so this list is
+// The MCP clients we give explicit setup steps for. Noodal is client-agnostic:
+// any MCP-speaking tool works against the same connector URL, so this list is
 // presentation only; keep it in one place so the funnel (ConnectMcpScreen) and
 // the post-login landing (ConsumerLanding) can't drift out of sync with each
 // other on which clients/steps are shown.

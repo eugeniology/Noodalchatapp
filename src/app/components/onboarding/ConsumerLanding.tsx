@@ -28,7 +28,7 @@ export function ConsumerLanding({
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      /* clipboard blocked — the URL is shown inline to copy by hand */
+      /* clipboard blocked; the URL is shown inline to copy by hand */
     }
   };
 
@@ -54,7 +54,7 @@ export function ConsumerLanding({
             <h1 className="text-2xl font-medium">Your noodal is ready.</h1>
             <p className="text-muted-foreground">
               Connect it to the AI tool you already use. Your own model does the
-              thinking; your noodal remembers across every session — yours alone,
+              thinking; your noodal remembers across every session, yours alone,
               exportable anytime, never anyone's training data.
             </p>
           </div>
@@ -91,7 +91,7 @@ export function ConsumerLanding({
 
           <div className="border-t border-border pt-6 text-sm text-muted-foreground">
             Signed in as <span className="text-foreground">{who}</span>. The web
-            chat experience is coming soon — for now your noodal lives in your MCP
+            chat experience is coming soon. For now your noodal lives in your MCP
             client.
           </div>
         </div>

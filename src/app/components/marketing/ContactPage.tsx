@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { MarketingPage, serif, mono } from "./MarketingChrome";
 
-// Contact / support — "no support queue, a real person reads every message."
+// Contact / support: "no support queue, a real person reads every message."
 // Cut 1: no backend support endpoint yet (311b703c: ticket -> loop -> SES is the
 // eventual path), so submit opens a mailto: to the founder with the form
-// content pre-filled — the message genuinely leaves the user's machine via
+// content pre-filled. The message genuinely leaves the user's machine via
 // their own mail client, rather than the UI silently claiming a delivery that
 // never happened.
 
@@ -23,7 +23,7 @@ export function ContactPage() {
           There's no support queue.
         </h1>
         <p className="mt-4 text-[18px] leading-relaxed text-[#54515d]">
-          A real person reads every message — and it's the founder. Email us directly, or use the form below.
+          A real person reads every message: it's the founder. Email us directly, or use the form below.
         </p>
 
         {sent ? (
@@ -42,8 +42,8 @@ export function ContactPage() {
             className="mt-10 space-y-5"
             onSubmit={(e) => {
               e.preventDefault();
-              const subject = `Noodal contact form — ${email}`;
-              const body = `${message}\n\n—\nFrom: ${email}`;
+              const subject = `Noodal contact form: ${email}`;
+              const body = `${message}\n\nFrom: ${email}`;
               window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
               setSent(true);
             }}

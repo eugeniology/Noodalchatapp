@@ -6,7 +6,7 @@ import { MCP_CONNECT_URL } from "../../lib/membraneBase";
 import { MCP_CLIENTS } from "../../lib/mcpClients";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 
-// Connect-your-MCP screen — the launch consumer surface (scope 44a9c02f,
+// Connect-your-MCP screen: the launch consumer surface (scope 44a9c02f,
 // BYOM/MCP-first). Noodal is client-agnostic: the same connector URL works
 // with any MCP-speaking tool (Claude, ChatGPT, Gemini, Cursor, VS Code, etc.),
 // so this screen picks a client and shows that client's setup steps rather
@@ -38,7 +38,7 @@ export function ConnectMcpScreen() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      /* clipboard blocked — the URL is shown inline to copy by hand */
+      /* clipboard blocked; the URL is shown inline to copy by hand */
     }
   };
 
@@ -88,7 +88,7 @@ export function ConnectMcpScreen() {
                   <Step n={c.steps.length + 1} title="Start building knowledge">
                     Ask your MCP client to find, read, and write to{" "}
                     <span className="text-foreground">your noodal</span>. Your own
-                    model does the reasoning — Noodal keeps and compounds the
+                    model does the reasoning; Noodal keeps and compounds the
                     knowledge.
                   </Step>
                 </ol>
