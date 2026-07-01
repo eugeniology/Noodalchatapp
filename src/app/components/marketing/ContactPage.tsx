@@ -18,9 +18,9 @@ export function ContactPage() {
   return (
     <MarketingPage>
       <section className="mx-auto max-w-xl px-6 py-20">
-        <p style={{ ...mono, color: "var(--noo-terracotta)" }} className="mb-4 text-[12px] uppercase tracking-[0.14em]">A real person reads this</p>
+        <p style={{ ...mono, color: "var(--noo-terracotta)" }} className="mb-4 text-[12px] uppercase tracking-[0.14em]">Read by a human</p>
         <h1 style={{ ...serif, color: "var(--noo-ink)" }} className="text-[34px] font-semibold leading-tight md:text-[42px]">
-          There's no support queue.
+          There's no support queue, yet.
         </h1>
         <p className="mt-4 text-[18px] leading-relaxed text-[#54515d]">
           Email us directly ({SUPPORT_EMAIL}) or use the form below.
@@ -59,6 +59,7 @@ export function ContactPage() {
                 className="w-full rounded-[12px] border px-4 py-3 text-[15px] outline-none focus:border-[var(--noo-purple)]"
                 style={{ borderColor: "#dcd9d2" }}
               />
+              <p className="mt-2 text-[12px] text-[#9c98a8]">"Ask Noodal" coming soon.</p>
             </div>
             <div>
               <label style={mono} className="mb-2 block text-[12px] uppercase tracking-[0.12em] text-[#7a7788]">Your message</label>
