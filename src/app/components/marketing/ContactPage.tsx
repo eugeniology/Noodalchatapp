@@ -2,22 +2,23 @@ import { useState } from "react";
 import { MarketingPage, serif, mono } from "./MarketingChrome";
 import { TurnstileWidget } from "../TurnstileWidget";
 import { useHoneypot } from "../../lib/useHoneypot";
+import { BASE } from "../../lib/membraneBase";
 
 // Contact / support: "no support queue, a real person reads every message."
-// Cut 1: no backend support endpoint yet (311b703c: ticket -> loop -> SES is the
-// eventual path), so submit opens a mailto: to the founder with the form
-// content pre-filled. The message genuinely leaves the user's machine via
-// their own mail client, rather than the UI silently claiming a delivery that
-// never happened.
+// Submits to membrane's POST /public/support-tickets (loop 311b703c: a
+// ticket becomes a Loop on the support corpus + a courtesy SES email). Falls
+// back to a mailto: (the original Cut-1 behavior) if that call fails for any
+// reason — network error, or the backend not deployed yet — so the form
+// never truly breaks regardless of frontend/backend deploy sequencing.
 
 const SUPPORT_EMAIL = "info@sagacityapps.com";
 
 export function ContactPage() {
-  const [sent, setSent] = useState(false);
+  const [sentVia, setSentVia] = useState<"ticket" | "mailto" | null>(null);
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
-  const [verified, setVerified] = useState(false);
-  const { honeypotField, isBot } = useHoneypot();
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const { honeypotField, honeypotValue, isBot } = useHoneypot();
 
   return (
     <MarketingPage>
@@ -30,7 +31,12 @@ export function ContactPage() {
           Email us directly ({SUPPORT_EMAIL}) or use the form below.
         </p>
 
-        {sent ? (
+        {sentVia === "ticket" ? (
+          <div className="mt-10 rounded-[16px] border p-8 text-center" style={{ borderColor: "var(--noo-green-light)", background: "var(--noo-green-tint)" }}>
+            <p style={{ ...serif, color: "var(--noo-ink)" }} className="text-[22px] font-medium">Got it.</p>
+            <p className="mt-2 text-[15px] text-[#54515d]">Your message is in the queue and I'll get back to you soon.</p>
+          </div>
+        ) : sentVia === "mailto" ? (
           <div className="mt-10 rounded-[16px] border p-8 text-center" style={{ borderColor: "var(--noo-green-light)", background: "var(--noo-green-tint)" }}>
             <p style={{ ...serif, color: "var(--noo-ink)" }} className="text-[22px] font-medium">Your email app should have opened.</p>
             <p className="mt-2 text-[15px] text-[#54515d]">
@@ -44,13 +50,32 @@ export function ContactPage() {
         ) : (
           <form
             className="mt-10 space-y-5"
-            onSubmit={(e) => {
+            onSubmit={async (e) => {
               e.preventDefault();
               if (isBot()) return;
+
+              try {
+                const res = await fetch(`${BASE}/public/support-tickets`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    email,
+                    message,
+                    turnstile_token: turnstileToken,
+                    honeypot: honeypotValue,
+                  }),
+                });
+                if (!res.ok) throw new Error(`support-tickets responded ${res.status}`);
+                setSentVia("ticket");
+                return;
+              } catch {
+                /* backend not reachable (not deployed yet, or a network error) — fall back to mailto */
+              }
+
               const subject = `Noodal contact form: ${email}`;
               const body = `${message}\n\nFrom: ${email}`;
               window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-              setSent(true);
+              setSentVia("mailto");
             }}
           >
             {honeypotField}
@@ -79,10 +104,10 @@ export function ContactPage() {
                 style={{ borderColor: "#dcd9d2" }}
               />
             </div>
-            <TurnstileWidget onVerify={() => setVerified(true)} />
+            <TurnstileWidget onVerify={setTurnstileToken} />
             <button
               type="submit"
-              disabled={!verified}
+              disabled={!turnstileToken}
               style={{ background: "var(--noo-purple)" }}
               className="rounded-[12px] px-6 py-3.5 text-[15px] font-medium text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
             >
