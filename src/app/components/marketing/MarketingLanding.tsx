@@ -109,13 +109,13 @@ export function MarketingLanding() {
             in your AI tool
           </p>
           <div className="space-y-4 text-[15px]">
-            <p className="text-[#54515d]"><span style={{ ...mono, color: "var(--noo-purple)" }} className="mr-2 text-[12px]">you</span>where did we land on the pricing?</p>
+            <p className="text-[#54515d]"><span style={{ ...mono, color: "var(--noo-purple)" }} className="mr-2 text-[12px]">you</span>how many sq ft is the Johnson property's living space?</p>
             <div className="rounded-[12px] p-4" style={{ background: "#fff", border: "1px solid #ece8df" }}>
               <p style={{ color: "var(--noo-ink)" }} className="leading-relaxed">
-                Noodals is <strong>$12/mo</strong> ($120/yr). You opened a first-cohort Founding Circle at half off ($6) — that changed two days ago from the earlier $6 base.
+                It's currently <strong>750 sq ft</strong>. With the addition you're proposing, that adds another <strong>720 sq ft</strong>, bringing the total to <strong>1,470 sq ft</strong>. Want me to pull the dimensions or a schematic?
               </p>
             </div>
-            <p style={{ ...mono, color: "var(--noo-green)" }} className="text-[12px]">↳ answered from the whole story, naming what changed</p>
+            <p style={{ ...mono, color: "var(--noo-green)" }} className="text-[12px]">↳ answered from the whole story, tracking what's already on file</p>
           </div>
         </div>
       </section>
