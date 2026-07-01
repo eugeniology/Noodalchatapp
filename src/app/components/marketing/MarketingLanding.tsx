@@ -47,16 +47,19 @@ const TIERS = [
     blurb: "One private noodal, free forever. Need another? Additional noodals are $1/mo, or $10/yr.",
     features: ["First noodal free forever", "Additional noodals: $1/mo or $10/yr each", "Cross-session memory via your MCP client", "Bring your own model", "Export your data anytime (JSON)"],
     cta: "Get started free",
+    ctaTo: "/signup",
     highlight: false,
   },
   {
     name: "Gang",
     price: "$10",
     cadence: "/mo, or $100/yr",
+    availability: "Coming Fall 2026",
+    comingSoon: true,
     blurb: "20 noodals in one gang. For a family, team, or project that needs more than a few.",
     features: ["20 noodals included", "Compounding cross-noodal memory", "Notes & inter-noodal distillation", "Priority support"],
-    cta: "Start a gang",
-    highlight: true,
+    cta: "Notify me of updates",
+    highlight: false,
   },
   {
     name: "Enterprise",
@@ -65,6 +68,7 @@ const TIERS = [
     blurb: "Always-on, managed runners, shared team memory, and on-prem options.",
     features: ["Managed always-on runners", "Team & shared memory", "SSO, audit, on-prem"],
     cta: "Contact us",
+    ctaTo: "/contact",
     highlight: false,
   },
 ];
@@ -189,16 +193,28 @@ export function MarketingLanding() {
 
       {/* Pricing */}
       <section id="pricing" className="mx-auto max-w-6xl px-6 py-20">
-        <p style={{ ...mono, color: "var(--noo-terracotta)" }} className="mb-3 text-center text-[12px] uppercase tracking-[0.14em]">Start free. Compound later.</p>
+        <p style={{ ...mono, color: "var(--noo-terracotta)" }} className="mb-3 text-center text-[12px] uppercase tracking-[0.14em]">Compound your AI knowledge for free.</p>
         <h2 style={{ ...serif, color: "var(--noo-ink)" }} className="mb-12 text-center text-[32px] font-semibold tracking-tight md:text-[40px]">Pricing</h2>
         <div className="grid items-start gap-6 md:grid-cols-3">
           {TIERS.map((t) => (
             <div
               key={t.name}
               className="flex h-full flex-col rounded-[18px] border p-7"
-              style={{ borderColor: t.highlight ? "var(--noo-purple)" : "#ece8df", background: t.highlight ? "var(--noo-purple-tint)" : "#fff", borderWidth: t.highlight ? 2 : 1 }}
+              style={{
+                borderColor: t.highlight ? "var(--noo-purple)" : "#ece8df",
+                background: t.highlight ? "var(--noo-purple-tint)" : "#fff",
+                borderWidth: t.highlight ? 2 : 1,
+                opacity: t.comingSoon ? 0.65 : 1,
+              }}
             >
-              <h3 style={{ ...serif, color: "var(--noo-ink)" }} className="text-[22px] font-semibold">{t.name}</h3>
+              <div className="flex items-center justify-between gap-2">
+                <h3 style={{ ...serif, color: "var(--noo-ink)" }} className="text-[22px] font-semibold">{t.name}</h3>
+                {t.availability && (
+                  <span style={{ ...mono, background: "#f1efe9", color: "#7a7788" }} className="rounded-full px-2.5 py-0.5 text-[11px] uppercase tracking-[0.08em]">
+                    {t.availability}
+                  </span>
+                )}
+              </div>
               <div className="mt-3 flex items-baseline gap-2">
                 <span style={{ ...serif, color: "var(--noo-ink)" }} className="text-[34px] font-semibold">{t.price}</span>
                 <span className="text-[14px] text-[#7a7788]">{t.cadence}</span>
@@ -212,13 +228,26 @@ export function MarketingLanding() {
                   </li>
                 ))}
               </ul>
-              <button
-                onClick={start}
-                className="mt-7 rounded-[12px] px-4 py-3 text-[14px] font-medium"
-                style={t.highlight ? { background: "var(--noo-purple)", color: "#fff" } : { background: "#fff", color: "var(--noo-ink)", border: "1px solid #dcd9d2" }}
-              >
-                {t.cta}
-              </button>
+              {t.comingSoon ? (
+                <>
+                  <button
+                    disabled
+                    className="mt-7 cursor-not-allowed rounded-[12px] px-4 py-3 text-[14px] font-medium"
+                    style={{ background: "#f1efe9", color: "#9c98a8", border: "1px solid #e4e1d9" }}
+                  >
+                    {t.cta}
+                  </button>
+                  <p className="mt-2 text-center text-[12px] text-[#9c98a8]">Sign-up list coming soon</p>
+                </>
+              ) : (
+                <button
+                  onClick={() => navigate(t.ctaTo)}
+                  className="mt-7 rounded-[12px] px-4 py-3 text-[14px] font-medium"
+                  style={t.highlight ? { background: "var(--noo-purple)", color: "#fff" } : { background: "#fff", color: "var(--noo-ink)", border: "1px solid #dcd9d2" }}
+                >
+                  {t.cta}
+                </button>
+              )}
             </div>
           ))}
         </div>
