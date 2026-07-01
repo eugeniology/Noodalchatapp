@@ -1,43 +1,18 @@
 import { useState } from "react";
 import { Button } from "../ui/button";
 import { MCP_CONNECT_URL } from "../../lib/membraneBase";
+import { MCP_CLIENTS } from "../../lib/mcpClients";
 import type { UserInfo } from "../../lib/membraneSession";
 
 // Post-login landing for a consumer (free, MCP-first launch). The consumer's
-// noodal lives behind their MCP client (Claude.ai etc.), not in this web
-// workspace, so a logged-in consumer has no platform corpora to render. Instead
-// of the "no accessible corpora" dead-end, we land them here: how to connect
-// their noodal to the AI tool of their choice, plus account access.
+// noodal lives behind their MCP client (Claude, ChatGPT, Gemini, Cursor, VS
+// Code, etc.), not in this web workspace, so a logged-in consumer has no
+// platform corpora to render. Instead of the "no accessible corpora"
+// dead-end, we land them here: how to connect their noodal to the AI tool of
+// their choice, plus account access.
 //
 // MVP per founder Path-1 (MCP-first). The richer marketing/setup design
 // (noodal.com) lands later; this is the basic, functional version.
-
-const CLIENTS: { name: string; steps: string[] }[] = [
-  {
-    name: "Claude.ai (web)",
-    steps: [
-      "Settings → Connectors → Add custom connector",
-      "Paste your MCP server URL (above) and save",
-      "Authorize with your Noodal account when prompted",
-    ],
-  },
-  {
-    name: "Claude Desktop",
-    steps: [
-      "Settings → Connectors → Add custom connector",
-      "Paste your MCP server URL and confirm",
-      "Sign in with your Noodal account to authorize",
-    ],
-  },
-  {
-    name: "Cursor",
-    steps: [
-      "Settings → MCP → Add new server (HTTP)",
-      "Paste your MCP server URL",
-      "Complete the Noodal sign-in to connect",
-    ],
-  },
-];
 
 export function ConsumerLanding({
   me,
@@ -101,8 +76,8 @@ export function ConsumerLanding({
               Set it up in your client
             </h2>
             <div className="grid gap-4">
-              {CLIENTS.map((c) => (
-                <div key={c.name} className="border border-border rounded-lg p-4 space-y-2">
+              {MCP_CLIENTS.map((c) => (
+                <div key={c.id} className="border border-border rounded-lg p-4 space-y-2">
                   <p className="font-medium text-sm">{c.name}</p>
                   <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
                     {c.steps.map((s, i) => (
@@ -112,10 +87,6 @@ export function ConsumerLanding({
                 </div>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Using another MCP client? Add a custom connector pointing at the URL
-              above and authorize with your Noodal account.
-            </p>
           </div>
 
           <div className="border-t border-border pt-6 text-sm text-muted-foreground">
