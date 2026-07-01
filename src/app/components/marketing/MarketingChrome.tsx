@@ -25,11 +25,11 @@ export function MarketingHeader() {
         <div className="mx-auto flex w-full max-w-6xl items-center justify-center gap-3 px-6 py-2.5 text-center">
           <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ background: "var(--noo-green-light)" }} />
           <p style={{ ...mono, color: "var(--noo-ink)" }} className="text-[12px] tracking-tight">
-            The Founding Circle is open — Noodals at half&nbsp;off for those who get here&nbsp;first
+            Your first noodal is free, forever. Additional noodals are $1/mo.
           </p>
-          <button onClick={() => navigate("/signup")} style={{ ...mono, color: "var(--noo-purple)" }} className="text-[12px] underline underline-offset-4 hover:opacity-70">
-            See the offer&nbsp;→
-          </button>
+          <a href="/#pricing" style={{ ...mono, color: "var(--noo-purple)" }} className="text-[12px] underline underline-offset-4 hover:opacity-70">
+            See pricing&nbsp;→
+          </a>
         </div>
       </div>
       <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-6 px-6 py-5">

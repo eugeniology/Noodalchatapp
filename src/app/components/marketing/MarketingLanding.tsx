@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { MarketingHeader } from "./MarketingChrome";
 
-// Noodals marketing landing — Cut 1 of eng-noodals-consumer-marketing-surface-v1.
+// Noodals marketing landing: Cut 1 of eng-noodals-consumer-marketing-surface-v1.
 // Built code-as-source to the design at /dev/noodals-design/noodals2/Noodal.dc.html
 // (build spec 26277eb4). Editorial hero direction (locked). Self-contained tokens
 // (var(--noo-*) / fonts from styles/fonts.css) so it does not touch the app theme.
@@ -14,7 +14,7 @@ const sans = { fontFamily: "var(--font-plex-sans)" } as const;
 const OWNERSHIP = [
   {
     h: "Your model, your bill",
-    p: "Your noodal runs on the AI you already use. We don't charge for inference — bring your own engine, keep it where it is.",
+    p: "Your noodal runs on the AI you already use. We don't charge for inference; bring your own engine, keep it where it is.",
   },
   {
     h: "Yours to take, anytime",
@@ -29,7 +29,7 @@ const OWNERSHIP = [
 const STEPS = [
   { n: "01", h: "Your noodal goes live instantly", p: "Sign up free and your noodal exists in seconds. No waitlist, no setup call." },
   { n: "02", h: "Add noodal to your AI in one step", p: "Paste one URL into your MCP client. Your own model does the thinking." },
-  { n: "03", h: "Talk, and it starts remembering", p: "Every exchange adds to it — the more you bring it, the more it carries forward, across every future session." },
+  { n: "03", h: "Talk, and it starts remembering", p: "Every exchange adds to it. The more you bring it, the more it carries forward, across every future session." },
 ];
 
 const CONNECTORS = ["Claude", "ChatGPT", "Cursor", "OpenClaw", "Any MCP client"];
@@ -38,26 +38,25 @@ const TIERS = [
   {
     name: "Noodal",
     price: "$0",
-    cadence: "forever free",
-    blurb: "One noodal, focused on a very specific subject. In this case, you.",
-    features: ["One private, isolated corpus", "Cross-session memory via your MCP client", "Bring your own model", "Export your data anytime (JSON)"],
+    cadence: "your first noodal, forever free",
+    blurb: "One private noodal, free forever. Need another? Additional noodals are $1/mo, or $10/yr.",
+    features: ["First noodal free forever", "Additional noodals: $1/mo or $10/yr each", "Cross-session memory via your MCP client", "Bring your own model", "Export your data anytime (JSON)"],
     cta: "Get started free",
     highlight: false,
   },
   {
-    name: "Noodals",
-    price: "$12",
-    cadence: "/mo · or $120/yr",
-    founders: "$6/mo or $60/yr for the Founding Circle",
-    blurb: "Everything in Noodal — plus many noodals that compound, communicate, and run tasks for you. For family, business, projects, or studies. Coming this fall.",
-    features: ["Multiple noodals", "Compounding cross-noodal memory", "Notes & inter-expert distillation", "Priority support"],
-    cta: "Join the Founding Circle",
+    name: "Gang",
+    price: "$10",
+    cadence: "/mo, or $100/yr",
+    blurb: "20 noodals in one gang. For a family, team, or project that needs more than a few.",
+    features: ["20 noodals included", "Compounding cross-noodal memory", "Notes & inter-noodal distillation", "Priority support"],
+    cta: "Start a gang",
     highlight: true,
   },
   {
-    name: "Enterprise Noodals",
+    name: "Enterprise",
     price: "Let's talk",
-    cadence: "pricing TBD",
+    cadence: "pricing scoped to your team",
     blurb: "Always-on, managed runners, shared team memory, and on-prem options.",
     features: ["Managed always-on runners", "Team & shared memory", "SSO, audit, on-prem"],
     cta: "Contact us",
@@ -81,7 +80,7 @@ export function MarketingLanding() {
     <div style={{ ...sans, background: "#ffffff", color: "var(--noo-text)" }} className="min-h-screen w-full overflow-x-hidden">
       <MarketingHeader />
 
-      {/* Hero — editorial */}
+      {/* Hero: editorial */}
       <section className="mx-auto grid max-w-6xl items-center gap-12 px-6 pb-20 pt-12 md:grid-cols-[1.1fr_0.9fr] md:pt-20">
         <div>
           <p style={{ ...mono, color: "var(--noo-green)" }} className="mb-6 text-[12px] uppercase tracking-[0.14em]">
@@ -91,7 +90,7 @@ export function MarketingLanding() {
             Working memory for whatever you're in the middle&nbsp;of.
           </h1>
           <p className="mt-6 max-w-xl text-[18px] leading-relaxed text-[#54515d]">
-            Intelligence without memory is just a very fast stranger. Your noodal keeps the story of now — and stays true as you change.
+            Intelligence without memory is just a very fast stranger. Your noodal keeps the story of now, and stays true as you change.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-4">
             <button onClick={start} style={{ background: "var(--noo-purple)" }} className="rounded-[12px] px-6 py-3.5 text-[15px] font-medium text-white hover:opacity-90">
@@ -125,10 +124,10 @@ export function MarketingLanding() {
         <div className="mx-auto max-w-3xl px-6 py-20 text-center">
           <p style={{ ...mono, color: "var(--noo-terracotta)" }} className="mb-5 text-[12px] uppercase tracking-[0.14em]">What is a noodal?</p>
           <h2 style={{ ...serif, color: "var(--noo-ink)" }} className="text-[30px] font-medium leading-snug md:text-[36px]">
-            A noodal is working memory for one subject — in this case, you.
+            A noodal is working memory for one subject: in this case, you.
           </h2>
           <p className="mx-auto mt-6 max-w-2xl text-[18px] leading-relaxed text-[#54515d]">
-            Ask where something stands and it answers from the whole story — naming what changed and bringing you up to now. It remembers, it stays true, and when things shift, it catches you up.
+            Ask where something stands and it answers from the whole story, naming what changed and bringing you up to now. It remembers, it stays true, and when things shift, it catches you up.
           </p>
         </div>
       </section>
@@ -186,7 +185,6 @@ export function MarketingLanding() {
                 <span style={{ ...serif, color: "var(--noo-ink)" }} className="text-[34px] font-semibold">{t.price}</span>
                 <span className="text-[14px] text-[#7a7788]">{t.cadence}</span>
               </div>
-              {t.founders && <p style={{ ...mono, color: "var(--noo-purple)" }} className="mt-1 text-[12px]">{t.founders}</p>}
               <p className="mt-4 text-[14px] leading-relaxed text-[#54515d]">{t.blurb}</p>
               <ul className="mt-5 flex-1 space-y-2.5">
                 {t.features.map((f) => (
