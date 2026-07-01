@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { MarketingPage, serif, mono } from "./MarketingChrome";
+import { TurnstileWidget } from "../TurnstileWidget";
+import { useHoneypot } from "../../lib/useHoneypot";
 
 // Contact / support: "no support queue, a real person reads every message."
 // Cut 1: no backend support endpoint yet (311b703c: ticket -> loop -> SES is the
@@ -14,6 +16,8 @@ export function ContactPage() {
   const [sent, setSent] = useState(false);
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [verified, setVerified] = useState(false);
+  const { honeypotField, isBot } = useHoneypot();
 
   return (
     <MarketingPage>
@@ -42,12 +46,14 @@ export function ContactPage() {
             className="mt-10 space-y-5"
             onSubmit={(e) => {
               e.preventDefault();
+              if (isBot()) return;
               const subject = `Noodal contact form: ${email}`;
               const body = `${message}\n\nFrom: ${email}`;
               window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
               setSent(true);
             }}
           >
+            {honeypotField}
             <div>
               <label style={mono} className="mb-2 block text-[12px] uppercase tracking-[0.12em] text-[#7a7788]">Your email</label>
               <input
@@ -73,7 +79,13 @@ export function ContactPage() {
                 style={{ borderColor: "#dcd9d2" }}
               />
             </div>
-            <button type="submit" style={{ background: "var(--noo-purple)" }} className="rounded-[12px] px-6 py-3.5 text-[15px] font-medium text-white hover:opacity-90">
+            <TurnstileWidget onVerify={() => setVerified(true)} />
+            <button
+              type="submit"
+              disabled={!verified}
+              style={{ background: "var(--noo-purple)" }}
+              className="rounded-[12px] px-6 py-3.5 text-[15px] font-medium text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               Submit
             </button>
           </form>

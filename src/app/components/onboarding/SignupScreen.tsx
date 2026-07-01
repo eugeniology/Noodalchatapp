@@ -4,6 +4,8 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { OnboardingShell, PhaseBNotice } from "./OnboardingShell";
 import { SIGNUP_ENABLED, provisionSignup } from "../../lib/onboarding";
+import { TurnstileWidget } from "../TurnstileWidget";
+import { useHoneypot } from "../../lib/useHoneypot";
 
 // Consumer signup screen — Phase A shell. Renders the real form and routes into
 // the verify → connect flow so the launch onboarding is reviewable, but DOES NOT
@@ -16,13 +18,15 @@ export function SignupScreen() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [verified, setVerified] = useState(false);
+  const { honeypotField, isBot } = useHoneypot();
 
   const goVerify = (addr: string) =>
     navigate(`/verify-email?email=${encodeURIComponent(addr)}`);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password || busy) return;
+    if (!email.trim() || !password || busy || isBot()) return;
 
     // Phase A: the creation path is gated off. Walk the shell instead of calling
     // a backend that intentionally does not exist yet.
@@ -60,6 +64,7 @@ export function SignupScreen() {
       }
     >
       <form onSubmit={submit} className="space-y-5">
+        {honeypotField}
         <div className="space-y-3">
           <div className="space-y-1">
             <label className="text-xs text-muted-foreground" htmlFor="signup-email">
@@ -103,10 +108,12 @@ export function SignupScreen() {
           </div>
         )}
 
+        <TurnstileWidget onVerify={() => setVerified(true)} />
+
         <Button
           type="submit"
           className="w-full"
-          disabled={!email.trim() || !password || busy}
+          disabled={!email.trim() || !password || busy || !verified}
         >
           {busy ? "Creating…" : SIGNUP_ENABLED ? "Create account" : "Preview onboarding →"}
         </Button>
