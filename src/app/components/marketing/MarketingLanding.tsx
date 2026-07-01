@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { MarketingHeader } from "./MarketingChrome";
+import { NotifyMeForm } from "./NotifyMeForm";
 
 // Noodals marketing landing: Cut 1 of eng-noodals-consumer-marketing-surface-v1.
 // Built code-as-source to the design at /dev/noodals-design/noodals2/Noodal.dc.html
@@ -204,11 +205,10 @@ export function MarketingLanding() {
                 borderColor: t.highlight ? "var(--noo-purple)" : "#ece8df",
                 background: t.highlight ? "var(--noo-purple-tint)" : "#fff",
                 borderWidth: t.highlight ? 2 : 1,
-                opacity: t.comingSoon ? 0.65 : 1,
               }}
             >
               <div className="flex items-center justify-between gap-2">
-                <h3 style={{ ...serif, color: "var(--noo-ink)" }} className="text-[22px] font-semibold">{t.name}</h3>
+                <h3 style={{ ...serif, color: t.comingSoon ? "#b4b0a6" : "var(--noo-ink)" }} className="text-[22px] font-semibold">{t.name}</h3>
                 {t.availability && (
                   <span style={{ ...mono, background: "#f1efe9", color: "#7a7788" }} className="rounded-full px-2.5 py-0.5 text-[11px] uppercase tracking-[0.08em]">
                     {t.availability}
@@ -216,8 +216,8 @@ export function MarketingLanding() {
                 )}
               </div>
               <div className="mt-3 flex items-baseline gap-2">
-                <span style={{ ...serif, color: "var(--noo-ink)" }} className="text-[34px] font-semibold">{t.price}</span>
-                <span className="text-[14px] text-[#7a7788]">{t.cadence}</span>
+                <span style={{ ...serif, color: t.comingSoon ? "#b4b0a6" : "var(--noo-ink)" }} className="text-[34px] font-semibold">{t.price}</span>
+                <span className="text-[14px]" style={{ color: t.comingSoon ? "#c9c5bb" : "#7a7788" }}>{t.cadence}</span>
               </div>
               <p className="mt-4 text-[14px] leading-relaxed text-[#54515d]">{t.blurb}</p>
               <ul className="mt-5 flex-1 space-y-2.5">
@@ -229,16 +229,7 @@ export function MarketingLanding() {
                 ))}
               </ul>
               {t.comingSoon ? (
-                <>
-                  <button
-                    disabled
-                    className="mt-7 cursor-not-allowed rounded-[12px] px-4 py-3 text-[14px] font-medium"
-                    style={{ background: "#f1efe9", color: "#9c98a8", border: "1px solid #e4e1d9" }}
-                  >
-                    {t.cta}
-                  </button>
-                  <p className="mt-2 text-center text-[12px] text-[#9c98a8]">Sign-up list coming soon</p>
-                </>
+                <NotifyMeForm />
               ) : (
                 <button
                   onClick={() => navigate(t.ctaTo)}
