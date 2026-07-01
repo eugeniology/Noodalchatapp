@@ -46,7 +46,7 @@ const TIERS = [
     price: "$0",
     cadence: "your first noodal, forever free",
     blurb: "One private noodal, free forever. Need another? Additional noodals are $1/mo, or $10/yr.",
-    features: ["First noodal free forever", "Additional noodals: $1/mo or $10/yr each", "Cross-session memory via your MCP client", "Bring your own model", "Export your data anytime (JSON)"],
+    features: ["First noodal free forever", "Additional noodals: $1/mo or $10/yr each (coming soon)", "Cross-session memory via your MCP client", "Bring your own model", "Export your data anytime (JSON)"],
     cta: "Get started free",
     ctaTo: "/signup",
     highlight: false,
