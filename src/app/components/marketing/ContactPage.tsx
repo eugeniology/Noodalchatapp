@@ -23,7 +23,7 @@ export function ContactPage() {
           There's no support queue.
         </h1>
         <p className="mt-4 text-[18px] leading-relaxed text-[#54515d]">
-          A real person reads every message: it's the founder. Email us directly, or use the form below.
+          Email us directly ({SUPPORT_EMAIL}) or use the form below.
         </p>
 
         {sent ? (
