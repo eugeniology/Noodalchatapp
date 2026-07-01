@@ -73,7 +73,7 @@ export function ContactPage() {
               />
             </div>
             <button type="submit" style={{ background: "var(--noo-purple)" }} className="rounded-[12px] px-6 py-3.5 text-[15px] font-medium text-white hover:opacity-90">
-              Send it to the founder&nbsp;→
+              Send to a human that can help&nbsp;→
             </button>
           </form>
         )}
