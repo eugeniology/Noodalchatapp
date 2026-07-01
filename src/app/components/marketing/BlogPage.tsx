@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router";
 import { MarketingPage, serif, mono } from "./MarketingChrome";
 
 // The Noodal blog: "Notes from building the memory layer." Cut 1 ships the shell;
@@ -50,7 +51,9 @@ const POSTS: Post[] = [
 const FILTERS = ["All", ...Array.from(new Set(POSTS.map((p) => p.tag)))] as const;
 
 export function BlogPage() {
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]>("All");
+  const [searchParams] = useSearchParams();
+  const initialFilter = searchParams.get("tag") === "use-case" ? "USE CASE" : "All";
+  const [filter, setFilter] = useState<(typeof FILTERS)[number]>(initialFilter);
   const posts = filter === "All" ? POSTS : POSTS.filter((p) => p.tag === filter);
 
   return (

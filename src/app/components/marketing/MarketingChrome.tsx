@@ -9,7 +9,7 @@ export const sans = { fontFamily: "var(--font-plex-sans)" } as const;
 
 const NAV = [
   { label: "Product", to: "/#product" },
-  { label: "Use Cases", to: "/#use-cases" },
+  { label: "Use Cases", to: "/blog?tag=use-case" },
   { label: "Pricing", to: "/#pricing" },
   { label: "Setup", to: "/#setup" },
   { label: "Blog", to: "/blog" },
