@@ -40,7 +40,7 @@ export function NotifyMeForm() {
         name={GFORM_ENTRY_NAME}
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="Name"
+        placeholder="Full Name"
         required
         className="w-full rounded-[10px] border px-3 py-2 text-[13px] outline-none focus:border-[var(--noo-purple)]"
         style={{ borderColor: "#dcd9d2" }}
