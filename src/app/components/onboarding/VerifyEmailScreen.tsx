@@ -17,6 +17,7 @@ export function VerifyEmailScreen() {
 
   return (
     <OnboardingShell
+      chrome
       title={hasToken ? "Confirming your email" : "Check your inbox"}
       subtitle={
         hasToken
