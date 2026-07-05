@@ -53,3 +53,11 @@ export async function provisionSignup(_req: SignupRequest): Promise<SignupResult
 // against Cognito + propagating email_verified=true (the noodal-api gotcha
 // 3794a78a flagged in addendum 4f2c0b96) lands in Phase B.
 export const EMAIL_VERIFY_ENABLED = false;
+
+// Public "Sign in" affordance visibility. Hidden across the public marketing /
+// F&F surface until the official Free tier launch: at an invite-only, MCP-first
+// launch a prominent sign-in over-promises the (still-early) web workspace, and
+// invitees reach their noodal through their own MCP client, not this app. Sign-in
+// still works by direct URL — this only gates the visible links. Flip to true at
+// Free tier launch (alongside SIGNUP_ENABLED).
+export const PUBLIC_SIGNIN_ENABLED = false;

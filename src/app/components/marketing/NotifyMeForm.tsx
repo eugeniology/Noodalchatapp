@@ -19,7 +19,7 @@ const GFORM_ENTRY_NAME = "entry.1473054664";
 const GFORM_ENTRY_EMAIL = "entry.1929757461";
 const IFRAME_NAME = "gform-notify-target";
 
-export function NotifyMeForm() {
+export function NotifyMeForm({ source = "landing-page" }: { source?: string } = {}) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -58,7 +58,7 @@ export function NotifyMeForm() {
               body: JSON.stringify({
                 email,
                 desired_tier: "gang",
-                source: "landing-page",
+                source,
                 turnstile_token: turnstileToken,
                 honeypot: honeypotValue,
               }),

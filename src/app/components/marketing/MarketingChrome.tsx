@@ -75,6 +75,14 @@ export function MarketingFooter() {
         </nav>
         <p style={mono} className="text-[12px] text-[#7a7788]">The story that stays true as you change.</p>
       </div>
+      <div className="mx-auto w-full max-w-6xl px-6 pb-8">
+        <p style={mono} className="text-center text-[11px] text-[#9c98a8]">
+          Powered by{" "}
+          <a href="https://sagacityapps.com" target="_blank" rel="noopener noreferrer" style={{ color: "var(--noo-ink)" }} className="underline underline-offset-4 hover:opacity-70">
+            Sagacity
+          </a>
+        </p>
+      </div>
     </footer>
   );
 }

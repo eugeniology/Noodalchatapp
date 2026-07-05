@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { MarketingHeader } from "./MarketingChrome";
 import { NotifyMeForm } from "./NotifyMeForm";
+import { MCP_CLIENTS } from "../../lib/mcpClients";
 
 // Noodals marketing landing: Cut 1 of eng-noodals-consumer-marketing-surface-v1.
 // Built code-as-source to the design at /dev/noodals-design/noodals2/Noodal.dc.html
@@ -31,14 +32,6 @@ const OWNERSHIP = [
     p: "Your noodal is yours alone. It is never sold, never mined, never used to train someone else's model.",
   },
 ];
-
-const STEPS = [
-  { n: "01", h: "Your noodal goes live instantly", p: "Sign up free and your noodal exists in seconds. No waitlist, no setup call." },
-  { n: "02", h: "Add noodal to your AI in one step", p: "Paste one URL into your MCP client. Your own model does the thinking." },
-  { n: "03", h: "Talk, and it starts remembering", p: "Every exchange adds to it. The more you bring it, the more it carries forward, across every future session." },
-];
-
-const CONNECTORS = ["Claude", "ChatGPT", "Cursor", "OpenClaw", "Any MCP client"];
 
 const TIERS = [
   {
@@ -78,6 +71,8 @@ export function MarketingLanding() {
   const navigate = useNavigate();
   const { hash } = useLocation();
   const start = () => navigate("/signup");
+  const [toolId, setToolId] = useState(MCP_CLIENTS[0].id);
+  const tool = MCP_CLIENTS.find((c) => c.id === toolId) ?? MCP_CLIENTS[0];
 
   useEffect(() => {
     if (hash) {
@@ -170,25 +165,53 @@ export function MarketingLanding() {
         </div>
       </section>
 
-      {/* Setup */}
+      {/* Setup — pick your tool, then a tool-specific 3-step connection */}
       <section id="setup" style={{ background: "var(--noo-ink)" }} className="text-white">
-        <div className="mx-auto max-w-6xl px-6 py-20">
+        <div className="mx-auto max-w-4xl px-6 py-20">
           <p style={{ ...mono, color: "var(--noo-green-light)" }} className="mb-4 text-center text-[12px] uppercase tracking-[0.14em]">Two minutes to a noodal that remembers</p>
-          <h2 style={{ ...serif }} className="mb-14 text-center text-[32px] font-semibold tracking-tight md:text-[40px]">Connect in two minutes.</h2>
-          <div className="grid gap-10 md:grid-cols-3">
-            {STEPS.map((s) => (
-              <div key={s.n}>
-                <p style={{ ...mono, color: "var(--noo-purple-light)" }} className="text-[13px]">{s.n}</p>
-                <h3 style={{ ...serif }} className="mt-3 text-[21px] font-medium">{s.h}</h3>
-                <p className="mt-3 text-[15px] leading-relaxed text-[#b5b0d0]">{s.p}</p>
-              </div>
-            ))}
+          <h2 style={{ ...serif }} className="mb-3 text-center text-[32px] font-semibold tracking-tight md:text-[40px]">Connect in two minutes.</h2>
+          <p className="mb-9 text-center text-[15px] text-[#b5b0d0]">Pick your tool, then follow three steps.</p>
+
+          {/* Tool picker — real buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-2.5">
+            {MCP_CLIENTS.map((c) => {
+              const active = c.id === toolId;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setToolId(c.id)}
+                  aria-pressed={active}
+                  style={{ ...mono, ...(active ? { background: "var(--noo-purple)", borderColor: "var(--noo-purple)" } : {}) }}
+                  className={
+                    "rounded-full border px-4 py-2 text-[13px] transition " +
+                    (active ? "text-white" : "border-white/15 text-white/70 hover:border-white/40 hover:text-white")
+                  }
+                >
+                  {c.name}
+                </button>
+              );
+            })}
           </div>
-          <div className="mt-14 flex flex-wrap items-center justify-center gap-3">
-            {CONNECTORS.map((c) => (
-              <span key={c} style={{ ...mono }} className="rounded-full border border-white/15 px-4 py-2 text-[13px] text-white/80">{c}</span>
+
+          {/* Tool-driven 3-step connection — step 1 is the tool-specific instruction */}
+          <ol className="mt-12 grid gap-6 md:grid-cols-3">
+            {tool.steps.map((s, i) => (
+              <li key={i} className="rounded-[16px] border border-white/10 p-6" style={{ background: "rgba(255,255,255,0.03)" }}>
+                <div className="flex items-center gap-3">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-[13px] font-medium" style={{ background: "var(--noo-purple)", color: "#fff" }}>{i + 1}</span>
+                  <span style={{ ...mono, color: "var(--noo-green-light)" }} className="text-[11px] uppercase tracking-[0.1em]">
+                    {i === 0 ? `In ${tool.name}` : i === 1 ? "Your MCP URL" : "You're in"}
+                  </span>
+                </div>
+                <p className="mt-4 text-[15px] leading-relaxed text-[#d8d5ea]">{s}</p>
+              </li>
             ))}
-          </div>
+          </ol>
+
+          <p className="mt-9 text-center text-[14px] text-[#b5b0d0]">
+            That's it. Your own model does the thinking; your noodal keeps and compounds the knowledge.
+          </p>
         </div>
       </section>
 
@@ -252,6 +275,14 @@ export function MarketingLanding() {
             <span style={{ ...serif, color: "var(--noo-ink)" }} className="text-[18px] font-semibold">noodal</span>
           </div>
           <p style={{ ...mono }} className="text-[12px] text-[#7a7788]">The story that stays true as you change.</p>
+        </div>
+        <div className="mx-auto w-full max-w-6xl px-6 pb-8">
+          <p style={{ ...mono }} className="text-center text-[11px] text-[#9c98a8]">
+            Powered by{" "}
+            <a href="https://sagacityapps.com" target="_blank" rel="noopener noreferrer" style={{ color: "var(--noo-ink)" }} className="underline underline-offset-4 hover:opacity-70">
+              Sagacity
+            </a>
+          </p>
         </div>
       </footer>
     </div>
