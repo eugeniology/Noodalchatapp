@@ -141,6 +141,28 @@ export async function login(email: string, password: string): Promise<UserInfo> 
   return getMe();
 }
 
+/**
+ * A temp-password (admin-invited, FORCE_CHANGE_PASSWORD) account can't
+ * complete `login()` — the caller must catch that rejection, check
+ * `(err as { status?: number }).status === 409`, and call this instead
+ * (loop 3722374d). Resolves a FORCE_CHANGE_PASSWORD account to Permanent via
+ * membrane's direct, non-Hosted-UI Cognito call and returns live tokens in
+ * one step — no separate login() call needed afterward.
+ */
+export async function completeTempPassword(
+  email: string,
+  tempPassword: string,
+  newPassword: string,
+): Promise<UserInfo> {
+  const t = await authFetch<AuthTokenResponse>("/auth/complete-temp-password", {
+    email,
+    temp_password: tempPassword,
+    new_password: newPassword,
+  });
+  storeTokens(t);
+  return getMe();
+}
+
 export function logout(): void {
   clearMembraneSession();
 }
