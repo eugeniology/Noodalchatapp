@@ -61,19 +61,19 @@ Checked what's actually live right now, not what memory/loop framing assumed:
 
 ## 6. Verification (post-deploy)
 
-- [ ] **Build produced with the correct env:** `VITE_MEMBRANE_BASE=https://api-prod.sagacityapps.com npm run build`, then grep the built `dist/assets/index-*.js` for `api-prod.sagacityapps.com` (present) and `dev.sagacityapps.com` (absent).
-- [ ] **Old objects backed up locally** before sync (§2).
-- [ ] **Deployed and propagated:** `curl -s https://noodals.com/ | grep -o 'assets/index-[a-zA-Z0-9]*\.js'` shows a NEW hash (not `index-BXZrIefY.js`); the new JS bundle fetched from the live URL contains `api-prod.sagacityapps.com`.
-- [ ] **Real signup-shaped smoke through the ACTUAL live URL** (not local/proxied): drive `https://noodals.com` in a real browser against a throwaway `FORCE_CHANGE_PASSWORD` account on the PROD Cognito pool (paired with the backend ride's §6 smoke) — confirm the dead-end is gone, the set-password screen appears, submission succeeds, real tokens land. Clean up the throwaway account after.
-- [ ] **SPA-fallback routing still works:** a few non-root paths (e.g. `/pricing`, `/login`) still return 200 via the CloudFront 403/404→`/index.html` rule, not broken by the new build.
-- [ ] **No regression on `www.noodals.com`** (second alias on the same distro/bucket — should pick up the same change automatically, spot-check it separately since it's a distinct alias).
+- [x] **Build produced with the correct env:** `VITE_MEMBRANE_BASE=https://api-prod.sagacityapps.com npm run build` → new bundle `index-DbCB2XcV.js`. Grepped: `api-prod.sagacityapps.com` present (1 match), `dev.sagacityapps.com` absent (0 matches).
+- [x] **Old objects backed up locally** before sync — all 4 (`assets/index-BXZrIefY.js`, `assets/__vite-browser-external-BIHI7g3E.js`, `assets/index-TjdwE_Ad.css`, `index.html`) downloaded and verified byte-size-matching before any sync.
+- [x] **Deployed and propagated:** CloudFront invalidation `IE1ZJSXCCO9S7JBSEZE3TVZERV` completed. `curl -s https://noodals.com/ | grep -o 'assets/index-[a-zA-Z0-9]*\.js'` → `index-DbCB2XcV.js` (new hash, not `index-BXZrIefY.js`); fetched bundle from the live URL contains `api-prod.sagacityapps.com`.
+- [x] **Real signup-shaped smoke through the ACTUAL live URL:** created throwaway `sr18-apex-smoke-f31fa97f@noodals.com` on the PROD Cognito pool, drove `https://noodals.com` in a real browser (hit a caching gotcha first — the tab initially served the stale pre-sync bundle from an earlier same-tab load; a cache-busted force-navigate fixed it, worth noting for future rides). Confirmed: temp-password login → **"Set a new password" screen appeared** (the dead-end is gone) → submitted → real `id_token`/`refresh_token` in `localStorage`, `user_id` matching the account's sub → Cognito `UserStatus` FORCE_CHANGE_PASSWORD → **CONFIRMED**. Throwaway account (Cognito + all DB rows) fully torn down after.
+- [x] **SPA-fallback routing still works:** `/pricing` and `/login` both return 200 (CloudFront fallback intact).
+- [x] **No regression on `www.noodals.com`:** confirmed 200, serving the same new bundle (`index-DbCB2XcV.js`) automatically.
 
 ## 7. Loop-close conditions
 
-- [ ] (a) prod verified (new bundle live + propagated + real signup-shaped smoke through the actual URL) — §6
+- [x] (a) prod verified (new bundle live + propagated + real signup-shaped smoke through the actual URL) — §6, all green
 - [x] (b) this recovery record filed (this file) — first one for this repo; establishes the pattern for future noodal-chat-app prod rides
 - [x] (c) doc impact: this record itself is the delta (no pre-existing runbook for this repo to update)
-- [ ] (d) "main reconciliation" doesn't map cleanly to this repo's convention yet — the shipped commit (`d53451e6`) is on a loop branch, not yet merged via PR (no `gh auth`). Recommend: open the PR (link already surfaced in the self-report: `https://github.com/eugeniology/Noodalchatapp/pull/new/loop/eng-temp-password-login-fix-v0`) and merge to `main` as part of closing this loop, even though the deploy itself is a manual build off the branch commit, not off `main` — keeps the audit trail intact.
+- [ ] (d) "main reconciliation" doesn't map cleanly to this repo's convention yet — the shipped commit (`d53451e6`) is on a loop branch, still not merged via PR (`gh auth` still not configured in this session as of execution). PR link: `https://github.com/eugeniology/Noodalchatapp/pull/new/loop/eng-temp-password-login-fix-v0`. Recommend opening + merging as a fast-follow — the live deploy itself is already correct and verified (built off the branch commit), this is audit-trail hygiene, not a functional gap.
 
 ## 8. Break-glass
 
