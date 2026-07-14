@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 // Phase-B seam is the per-account corpus name, which is filled once the
 // provisioning saga runs (today it shows a placeholder).
 
-function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
+function Step({ n, title, children }: { n: number; title: string; children?: React.ReactNode }) {
   return (
     <li className="flex gap-3">
       <span className="shrink-0 h-6 w-6 rounded-full bg-muted text-foreground text-xs font-medium flex items-center justify-center">

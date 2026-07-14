@@ -255,7 +255,7 @@ export function MarketingLanding() {
                 <NotifyMeForm />
               ) : (
                 <button
-                  onClick={() => navigate(t.ctaTo)}
+                  onClick={() => t.ctaTo && navigate(t.ctaTo)}
                   className="mt-7 rounded-[12px] px-4 py-3 text-[14px] font-medium"
                   style={t.highlight ? { background: "var(--noo-purple)", color: "#fff" } : { background: "#fff", color: "var(--noo-ink)", border: "1px solid #dcd9d2" }}
                 >

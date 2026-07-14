@@ -1,0 +1,135 @@
+# noodal-frontend — CI/CD pipeline
+# Origin: organic-loop loop 13547d7e (eng-frontend-gitlab-consolidation-phase2-v0)
+# Mirrors membrane's .gitlab-ci.yml shape (lint -> build -> deploy -> verify).
+#
+# MR pipelines: lint only (fast feedback)
+# Main pipelines: lint + build + deploy-dev + verify
+#
+# DEV ONLY. There is deliberately no deploy-prod job here — the first prod
+# deploy from this pipeline is its own SR-18 ride (recovery record + SRE
+# sign-off) that switches prod off the manual/branch build it uses today.
+#
+# VITE_MEMBRANE_BASE / VITE_MCP_CONNECT_URL are set EXPLICITLY per environment
+# below rather than relying on the app's hardcoded dev fallback in
+# src/app/lib/membraneBase.ts — that exact gap (a build shipped with no
+# override) caused the prod apex to silently serve against the dev API for
+# weeks (loop 3722374d, resolved 2026-07-13). Never remove these overrides.
+
+stages:
+  - lint
+  - build
+  - deploy
+  - verify
+
+variables:
+  AWS_REGION: us-east-1
+  DEV_S3_BUCKET: noodals-com-spa-dev
+  DEV_CLOUDFRONT_DISTRIBUTION_ID: EQ4UN812XRDXU
+  DEV_MEMBRANE_BASE: "https://dev.sagacityapps.com"
+  DEV_MCP_CONNECT_URL: "https://dev.sagacityapps.com/mcp/mcp"
+  DEV_URL: "https://dev.noodals.com"
+
+default:
+  image: node:22-slim
+
+cache:
+  key: "$CI_COMMIT_REF_SLUG"
+  paths:
+    - .npm/
+
+.npm_install: &npm_install
+  before_script:
+    - npm ci --cache .npm --prefer-offline
+
+# --- Lint (new baseline — no lint/typecheck existed on this repo before this
+#     pipeline; see loop 13547d7e for the two pre-existing type errors fixed
+#     to establish a green starting point) ---------------------------------
+
+eslint:
+  stage: lint
+  <<: *npm_install
+  script:
+    - npm run lint
+
+typecheck:
+  stage: lint
+  <<: *npm_install
+  script:
+    - npm run typecheck
+
+# --- Build -----------------------------------------------------------------
+
+build:
+  stage: build
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  <<: *npm_install
+  script:
+    - VITE_MEMBRANE_BASE=$DEV_MEMBRANE_BASE VITE_MCP_CONNECT_URL=$DEV_MCP_CONNECT_URL npm run build
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 day
+
+# --- Deploy (dev only) ------------------------------------------------------
+#
+# Automates the previously-manual recipe (memory: project_noodals_com_launch_infra)
+# verbatim: content-hashed assets get a long-lived immutable cache-control and
+# are pruned with --delete; index.html is no-cache so the SPA always picks up
+# the latest hashed asset names; CloudFront is invalidated so edge caches don't
+# serve the previous build.
+
+deploy-dev:
+  stage: deploy
+  image:
+    name: amazon/aws-cli:2.17.62
+    entrypoint: [""]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs: ["build"]
+  script:
+    - aws s3 sync dist/assets "s3://${DEV_S3_BUCKET}/assets" --cache-control "public,max-age=31536000,immutable" --delete
+    - aws s3 cp dist/index.html "s3://${DEV_S3_BUCKET}/index.html" --cache-control "no-cache" --content-type "text/html"
+    - aws cloudfront create-invalidation --distribution-id "$DEV_CLOUDFRONT_DISTRIBUTION_ID" --paths "/*"
+
+# --- Verify (dev only) -------------------------------------------------------
+#
+# membrane's analog is the build_sha/SR-2 /health check; this frontend has no
+# such endpoint, so verify instead asserts the deployed index.html references
+# the exact content-hashed asset this pipeline just built (catches a stale-cache
+# or failed-sync false-green) and that the key marketing + onboarding + app
+# routes all resolve (SPA fallback makes every path 200, so this is a
+# reachability check, not a route-existence proof — see the noodal-chat-app
+# deploy-recipe gotcha in memory).
+
+verify-dev:
+  stage: verify
+  image: curlimages/curl:8.10.1
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs: ["deploy-dev", "build"]
+  script:
+    - |
+      EXPECTED_JS=$(grep -o 'assets/index-[A-Za-z0-9_-]*\.js' dist/index.html | head -1)
+      echo "Expecting deployed asset: ${EXPECTED_JS}"
+
+      LIVE_HTML=""
+      for attempt in 1 2 3 4 5; do
+        LIVE_HTML=$(curl -s "${DEV_URL}/?cb=${CI_PIPELINE_ID}-${attempt}")
+        if echo "$LIVE_HTML" | grep -q "$EXPECTED_JS"; then
+          echo "PASS: deployed index.html references ${EXPECTED_JS}"
+          break
+        fi
+        echo "Attempt ${attempt}/5: asset not live yet, retrying in 10s"
+        sleep 10
+      done
+
+      echo "$LIVE_HTML" | grep -q "$EXPECTED_JS" || { echo "FAIL: deployed asset does not match this pipeline's build (stale cache or failed sync)"; exit 1; }
+
+      for route in / /blog /faq /contact /early-access /forgot-password; do
+        STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${DEV_URL}${route}")
+        echo "route ${route}: ${STATUS}"
+        [ "$STATUS" = "200" ] || { echo "FAIL: ${route} returned ${STATUS}, expected 200"; exit 1; }
+      done
+
+      echo "PASS: build_asset=${EXPECTED_JS} live at ${DEV_URL}, all key routes 200"
