@@ -167,6 +167,46 @@ export function logout(): void {
   clearMembraneSession();
 }
 
+// --- Self-serve password reset (loop 3949ec15) ---
+// Two unauthenticated steps mirroring the membrane /auth/forgot-password +
+// /auth/reset-password endpoints. Step 1 asks Cognito to email a reset code to
+// the user's verified address (email_verified=true is set at invite time,
+// gotcha 3794a78a); step 2 confirms the code and sets the new password, after
+// which the user can log in normally. Neither stores a session — the caller
+// routes to /login on success.
+
+export interface MessageResponse {
+  message: string;
+}
+
+/**
+ * Step 1 — request a reset code. Resolves regardless of whether the account
+ * exists (the membrane returns a fixed generic acknowledgement so nothing about
+ * account existence leaks). Rejects only on throttling (429) or an infra fault
+ * (503); the screen surfaces those as "try again later".
+ */
+export async function requestPasswordReset(email: string): Promise<MessageResponse> {
+  return authFetch<MessageResponse>("/auth/forgot-password", { email });
+}
+
+/**
+ * Step 2 — submit the emailed code + new password. Rejects with a generic
+ * "Invalid or expired reset code" (400) on a bad/expired code, the Cognito
+ * password-policy message (400) if the new password is too weak, or a 429/503
+ * on throttle/infra. Resolves once the password is set.
+ */
+export async function confirmPasswordReset(
+  email: string,
+  code: string,
+  newPassword: string,
+): Promise<MessageResponse> {
+  return authFetch<MessageResponse>("/auth/reset-password", {
+    email,
+    code,
+    new_password: newPassword,
+  });
+}
+
 /** GET /auth/me using the stored bearer. Throws (status 401) if invalid. */
 export async function getMe(): Promise<UserInfo> {
   const token = getMembraneToken();

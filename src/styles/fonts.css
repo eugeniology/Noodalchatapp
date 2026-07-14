@@ -1,0 +1,22 @@
+/* Noodals design system — typography (build spec 26277eb4 · design noodals2/Noodal.dc.html)
+   Fraunces = editorial serif (wordmark + headings) · IBM Plex Sans = body/UI · IBM Plex Mono = labels/banner */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --font-fraunces: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-plex-sans: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --font-plex-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
+
+  /* Noodals palette (extracted from the design) */
+  --noo-ink: #1b1922;
+  --noo-text: #3f3c48;
+  --noo-muted: #7a7788;
+  --noo-purple: #4b43d9;
+  --noo-purple-light: #7b73f0;
+  --noo-purple-tint: #edebfa;
+  --noo-green: #2f8556;
+  --noo-green-light: #5cc08a;
+  --noo-green-tint: #e2efe7;
+  --noo-terracotta: #c0603a;
+  --noo-paper: #faf8f3;
+}

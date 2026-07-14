@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { Button } from "../ui/button";
-import { OnboardingShell, PhaseBNotice } from "./OnboardingShell";
+import { OnboardingShell } from "./OnboardingShell";
 import { MCP_CONNECT_URL } from "../../lib/membraneBase";
+import { MCP_CLIENTS } from "../../lib/mcpClients";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
 
-// Connect-your-MCP screen — the launch consumer surface (scope 44a9c02f,
-// BYOM/MCP-first). The user reaches their noodal through their own MCP client
-// (Claude.ai etc.) pointed at membrane. This screen is the real instructions;
-// the only Phase-B seam is the per-account corpus name, which is filled once the
+// Connect-your-MCP screen: the launch consumer surface (scope 44a9c02f,
+// BYOM/MCP-first). Noodal is client-agnostic: the same connector URL works
+// with any MCP-speaking tool (Claude, ChatGPT, Gemini, Cursor, VS Code, etc.),
+// so this screen picks a client and shows that client's setup steps rather
+// than assuming Claude.ai. This screen is the real instructions; the only
+// Phase-B seam is the per-account corpus name, which is filled once the
 // provisioning saga runs (today it shows a placeholder).
 
 function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
@@ -26,6 +30,7 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
 
 export function ConnectMcpScreen() {
   const [copied, setCopied] = useState(false);
+  const [clientId, setClientId] = useState(MCP_CLIENTS[0].id);
 
   const copyUrl = async () => {
     try {
@@ -33,14 +38,14 @@ export function ConnectMcpScreen() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      /* clipboard blocked — the URL is shown inline to copy by hand */
+      /* clipboard blocked; the URL is shown inline to copy by hand */
     }
   };
 
   return (
     <OnboardingShell
       title="Connect your MCP client"
-      subtitle="Use your noodal from Claude.ai (or any MCP client) with your own model."
+      subtitle="Use your noodal from any MCP client."
       step="connect"
       footer={
         <>
@@ -64,24 +69,33 @@ export function ConnectMcpScreen() {
           </div>
         </div>
 
-        <ol className="space-y-4">
-          <Step n={1} title="Add a connector in Claude.ai">
-            Settings → Connectors → Add custom connector, and paste the URL above.
-          </Step>
-          <Step n={2} title="Sign in with your Noodal account">
-            Your client opens a Noodal login — authorize it to reach your corpus.
-          </Step>
-          <Step n={3} title="Start building knowledge">
-            Ask your MCP client to find, read, and write to{" "}
-            <span className="text-foreground">your noodal</span>. Your own model
-            does the reasoning — Noodal keeps and compounds the knowledge.
-          </Step>
-        </ol>
-
-        <PhaseBNotice>
-          Your noodal is created and named the first time you sign up at launch
-          (Phase B). The connector URL above is live now.
-        </PhaseBNotice>
+        <div className="space-y-3">
+          <label className="text-xs text-muted-foreground">Your client</label>
+          <Tabs value={clientId} onValueChange={setClientId}>
+            <TabsList className="flex-wrap h-auto">
+              {MCP_CLIENTS.map((c) => (
+                <TabsTrigger key={c.id} value={c.id}>
+                  {c.name}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+            {MCP_CLIENTS.map((c) => (
+              <TabsContent key={c.id} value={c.id}>
+                <ol className="space-y-4">
+                  {c.steps.map((s, i) => (
+                    <Step key={i} n={i + 1} title={s} />
+                  ))}
+                  <Step n={c.steps.length + 1} title="Start building knowledge">
+                    Ask your MCP client to find, read, and write to{" "}
+                    <span className="text-foreground">your noodal</span>. Your own
+                    model does the reasoning; Noodal keeps and compounds the
+                    knowledge.
+                  </Step>
+                </ol>
+              </TabsContent>
+            ))}
+          </Tabs>
+        </div>
       </div>
     </OnboardingShell>
   );

@@ -10,6 +10,10 @@
 
     <body>
       <div id="root"></div>
+      <!-- Cloudflare Turnstile bot-check widget, used on the Contact and Signup
+           forms (src/app/components/TurnstileWidget.tsx). Loaded globally
+           here since it's a plain script tag, not an npm package. -->
+      <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
       <script type="module" src="/src/main.tsx"></script>
     </body>
   </html>
